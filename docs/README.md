@@ -336,7 +336,7 @@ docs/
 
 | Документ                                     | Описание                   |
 | -------------------------------------------- | -------------------------- |
-| [user-flows/](20-ui/user-flows/)             | Пользовательские сценарии  |
+| [screen-contracts/](20-ui/screen-contracts/)             | Пользовательские сценарии  |
 | [screen-contracts/](20-ui/screen-contracts/) | Контракты экранов          |
 | [permissions/](20-ui/permissions/)           | Права доступа к интерфейсу |
 | [realtime-ui.md](20-ui/realtime-ui.md)       | Реалтайм-интерфейс         |
