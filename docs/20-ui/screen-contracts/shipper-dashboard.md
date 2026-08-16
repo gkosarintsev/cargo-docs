@@ -1,26 +1,34 @@
-# Поведенческий контракт: Главный дашборд грузовладельца
+# Поведенческий контракт: Главный дашборд грузовладельца (Shipper Dashboard)
 
-## Состояния экрана
-`Loading Data`, `Dashboard Active`, `Error State (Retry)`
+## Визуальное состояние экрана
+Экран состоит из следующих блоков:
+1. **Сводные KPI-виджеты (Верхняя панель)**:
+   - "Активные грузы" (в поиске).
+   - "Рейсы в пути" (с индикатором задержек).
+   - "Ожидают оплаты" (сумма и количество счетов).
+2. **Панель быстрых действий**: Крупная кнопка "Создать груз", "Мои шаблоны".
+3. **Лента активности (Activity Feed)**: Последние события (отклики на грузы, изменение статусов рейсов, новые документы).
 
-## Поведенческие контракты
+## Диаграмма состояний интерфейса
 
-```text
-Screen: Dashboard Active
-  ↓
-User Action: Автоматическая подгрузка данных при входе
-  ↓
-Client Validation: -
-  ↓
-API Request: GET /api/v1/dashboard/shipper/kpi
-  ↓
-Server State: Формирование метрик из Read-Model
-  ↓
-UI State Reconciliation: Отрисовка KPI виджетов (Активные грузы, в пути, ожидают оплаты).
-
-Screen: Dashboard Active
-  ↓
-User Action: Клик по кнопке "Создать груз"
-  ↓
-UI State Reconciliation: Переход на роут /loads/create.
+```mermaid
+stateDiagram-v2
+    [*] --> Loading: Вход на дашборд
+    Loading --> DashboardActive: Загрузка метрик (GET /kpi)
+    Loading --> ErrorState: Ошибка сети (5xx / Timeout)
+    
+    ErrorState --> Loading: Клик "Повторить"
+    
+    state DashboardActive {
+        [*] --> Idle
+        Idle --> NavigateToCreate: Клик "Создать груз"
+        Idle --> NavigateToLoad: Клик по событию в ленте
+        Idle --> Refreshing: Pull-to-refresh или фоновый поллинг (каждые 30 сек)
+        Refreshing --> Idle: Обновление данных KPI
+    }
 ```
+
+## Детальные поведенческие контракты
+
+- **Инициализация**: При монтировании компонента отправляется запрос `GET /api/v1/dashboard/shipper/kpi`. Показывается Skeleton loader.
+- **Обновление**: Лента активности получает обновления по WebSockets (`ws://.../notifications`). При получении нового события (например, `OfferReceived`) лента смещается вниз, новое событие появляется сверху с легким подсвечиванием фона (fade-out highlight).

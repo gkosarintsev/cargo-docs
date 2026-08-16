@@ -1,38 +1,40 @@
 # Поведенческий контракт: Экран публикации груза
 
-## Состояния экрана
-`Initial Form`, `Validating Addresses`, `Calculating Recommended Price`, `Publishing`, `Published Success`
+## Визуальное состояние экрана
+Многошаговая или длинная форма (Wizard):
+1. **Маршрут**: Поля "Откуда" и "Куда", интерактивная миникарта.
+2. **Параметры груза**: Вес, объем, тип кузова, температурный режим.
+3. **Даты и ставки**: Окна погрузки/выгрузки, виджет "Рекомендуемая ставка", поле ввода ставки.
+4. **Панель действий**: Кнопка "Опубликовать", "Сохранить как черновик".
 
-## Поведенческие контракты
+## Диаграмма состояний интерфейса
 
-```text
-Screen: Initial Form -> Address Input
-  ↓
-User Action: Ввод "Москва, Ленина 1"
-  ↓
-Client Validation: Дебаунс 300мс
-  ↓
-API Request: GET /api/v1/maps/geocode?q=...
-  ↓
-UI State Reconciliation: Автокомплит, выбор адреса, отрисовка точки на карте.
-
-Screen: Form with Payload specs
-  ↓
-User Action: Изменение веса (20т) и типа кузова (Тент)
-  ↓
-API Request: GET /api/v1/pricing/estimate
-  ↓
-UI State Reconciliation: Показ виджета "Рекомендуемая ставка: 110 000 – 125 000 ₽"
-
-Screen: Validated Form
-  ↓
-User Action: Клик "Опубликовать"
-  ↓
-Client Validation: Проверка обязательных полей, блокировка кнопки, генерация Idempotency-Key
-  ↓
-API Request: POST /api/v1/loads (Headers: Idempotency-Key)
-  ↓
-Server State: Транзакция создания груза -> Event: LoadPublished
-  ↓
-UI State Reconciliation: Оптимистичный показ груза в списке ("Синхронизация...") -> редирект в карточку груза.
+```mermaid
+stateDiagram-v2
+    [*] --> InitialForm: Открытие страницы
+    
+    state InitialForm {
+        [*] --> EmptyAddress
+        EmptyAddress --> AutocompleteLoading: Ввод текста адреса
+        AutocompleteLoading --> AutocompleteResults: Ответ от DaData/Яндекс
+        AutocompleteResults --> MapUpdated: Выбор адреса
+    }
+    
+    InitialForm --> CalculatingPrice: Изменены Вес/Кузов
+    CalculatingPrice --> PriceSuggested: Ответ от /api/v1/pricing/estimate
+    
+    PriceSuggested --> Validating: Клик "Опубликовать"
+    Validating --> InitialForm: Ошибка валидации (красные поля)
+    Validating --> Publishing: Валидация успешна
+    
+    Publishing --> PublishedSuccess: POST /loads (201 Created)
+    Publishing --> PublishError: Ошибка 500
+    
+    PublishedSuccess --> [*]: Редирект в карточку груза
+    PublishError --> PriceSuggested: Показ Toast ошибки
 ```
+
+## Детальные поведенческие контракты
+- **Геокодинг (Дебаунс 300мс)**: При вводе в поле адреса идет запрос к API. Выбор из выпадающего списка центрирует миникарту на точке.
+- **Оптимистичный расчет цены**: Как только заполнены маршрут и вес, форма блокирует виджет цены лоадером, делает фоновый запрос `GET /estimate` и плавно показывает рекомендуемую ставку (например, `110 000 – 125 000 ₽`).
+- **Идемпотентность кнопки**: При клике "Опубликовать" генерируется `Idempotency-Key`. Кнопка переходит в состояние `Loading (disabled)`. При успехе - мгновенный редирект.
