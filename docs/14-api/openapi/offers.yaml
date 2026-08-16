@@ -1,486 +1,80 @@
 openapi: 3.1.0
-
 info:
-  title: Офферы — API логистической платформы
+  title: Офферы и встречные предложения
   version: 1.0.0
-  description: |
-    REST API для управления коммерческими предложениями перевозчиков по грузам:
-    подача офферов, встречные предложения, акцепт и отклонение.
-
-servers:
-  - url: https://api.cargo-platform.ru
-    description: Продакшн
-
-security:
-  - BearerAuth: []
-  - ApiKeyAuth: []
-
-tags:
-  - name: offers
-    description: Офферы и встречные предложения
-
+  description: API для офферов
 paths:
   /api/v1/loads/{load_id}/offers:
-    parameters:
-      - $ref: '#/components/parameters/LoadId'
-      - $ref: '#/components/parameters/XTraceId'
-
     get:
-      tags: [offers]
-      operationId: listOffers
       summary: Список откликов по грузу
-      description: Возвращает все коммерческие предложения, поданные на указанный груз. Доступно только грузовладельцу.
       parameters:
-        - name: status
-          in: query
-          description: Фильтр по статусу оффера
+        - name: load_id
+          in: path
+          required: true
           schema:
             type: string
-            enum: [pending, countered, accepted, rejected, expired]
-        - name: cursor
-          in: query
-          schema:
-            type: string
-        - name: limit
-          in: query
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 100
-            default: 20
+            format: uuid
       responses:
         '200':
-          description: Список офферов
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/OfferListResponse'
-              example:
-                data:
-                  - id: "b2c3d4e5-f6a7-8901-bcde-f12345678901"
-                    load_id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
-                    carrier_org_id: "c3d4e5f6-a7b8-9012-cdef-123456789012"
-                    status: pending
-                    price:
-                      amount: 80000
-                      currency: RUB
-                      payment_type: per_route
-                    comment: "Готовы выехать 1 сентября"
-                    created_at: "2026-08-15T10:30:00Z"
-                next_cursor: null
-                total_count: 3
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-
+          description: OK
     post:
-      tags: [offers]
-      operationId: createOffer
-      summary: Подача коммерческого предложения перевозчиком
-      description: Перевозчик подаёт коммерческое предложение по грузу. Груз должен иметь статус `published`.
+      summary: Подача коммерческого предложения
       parameters:
-        - $ref: '#/components/parameters/IdempotencyKey'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateOfferRequest'
-            example:
-              price:
-                amount: 80000
-                currency: RUB
-                payment_type: per_route
-              vehicle_id: "d4e5f6a7-b8c9-0123-defa-234567890123"
-              driver_id: "e5f6a7b8-c9d0-1234-efab-345678901234"
-              pickup_at: "2026-09-01T08:00:00Z"
-              comment: "Готовы выехать 1 сентября, тент 20т"
+        - name: load_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
       responses:
         '201':
-          description: Оффер подан
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Offer'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-        '422':
-          $ref: '#/components/responses/UnprocessableEntity'
-
+          description: Created
   /api/v1/offers/{id}/counter:
     post:
-      tags: [offers]
-      operationId: counterOffer
-      summary: Подача встречного предложения грузовладельцем
-      description: Грузовладелец предлагает скорректированную цену или условия в ответ на оффер перевозчика.
+      summary: Подача встречного предложения
       parameters:
-        - $ref: '#/components/parameters/OfferId'
-        - $ref: '#/components/parameters/IdempotencyKey'
-        - $ref: '#/components/parameters/XTraceId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CounterOfferRequest'
-            example:
-              price:
-                amount: 82000
-                currency: RUB
-                payment_type: per_route
-              comment: "Готовы предложить 82 000 руб. при выезде не позднее 01.09"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
       responses:
         '200':
-          description: Встречное предложение зафиксировано
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Offer'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-        '422':
-          $ref: '#/components/responses/UnprocessableEntity'
-
+          description: OK
   /api/v1/offers/{id}/accept:
     post:
-      tags: [offers]
-      operationId: acceptOffer
       summary: Акцепт оффера
-      description: |
-        Акцептует коммерческое предложение, после чего:
-        - Груз переходит в статус `reserved`
-        - Все остальные офферы по данному грузу отклоняются
-        - Автоматически создаётся транспортный заказ (transport order)
       parameters:
-        - $ref: '#/components/parameters/OfferId'
-        - $ref: '#/components/parameters/IdempotencyKey'
-        - $ref: '#/components/parameters/XTraceId'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
       responses:
         '200':
-          description: Оффер акцептован, создан транспортный заказ
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AcceptOfferResponse'
-              example:
-                offer:
-                  id: "b2c3d4e5-f6a7-8901-bcde-f12345678901"
-                  status: accepted
-                transport_order_id: "f6a7b8c9-d0e1-2345-fabc-456789012345"
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-
+          description: OK
   /api/v1/offers/{id}/reject:
     post:
-      tags: [offers]
-      operationId: rejectOffer
       summary: Отклонение оффера
-      description: Грузовладелец отклоняет оффер перевозчика с указанием причины.
       parameters:
-        - $ref: '#/components/parameters/OfferId'
-        - $ref: '#/components/parameters/IdempotencyKey'
-        - $ref: '#/components/parameters/XTraceId'
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/RejectOfferRequest'
-            example:
-              reason: "Нашли перевозчика с лучшими условиями"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
       responses:
         '200':
-          description: Оффер отклонён
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Offer'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-
+          description: OK
 components:
   securitySchemes:
     BearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: JWT-токен, полученный через POST /api/v1/auth/token
     ApiKeyAuth:
       type: apiKey
       in: header
       name: X-API-Key
-      description: Статический API-ключ для server-to-server интеграций
-
-  parameters:
-    LoadId:
-      name: load_id
-      in: path
-      required: true
-      description: Уникальный идентификатор груза (UUID)
-      schema:
-        type: string
-        format: uuid
-    OfferId:
-      name: id
-      in: path
-      required: true
-      description: Уникальный идентификатор оффера (UUID)
-      schema:
-        type: string
-        format: uuid
-    IdempotencyKey:
-      name: Idempotency-Key
-      in: header
-      required: true
-      description: Ключ идемпотентности (UUIDv4)
-      schema:
-        type: string
-        format: uuid
-        pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$'
-    XTraceId:
-      name: X-Trace-Id
-      in: header
-      required: false
-      description: Идентификатор трассировки (UUID)
-      schema:
-        type: string
-        format: uuid
-
-  schemas:
-    Price:
-      type: object
-      required: [amount, currency, payment_type]
-      properties:
-        amount:
-          type: number
-          format: float
-          minimum: 0
-          description: Сумма
-        currency:
-          type: string
-          enum: [RUB, USD, EUR, KZT, BYN]
-        payment_type:
-          type: string
-          enum: [per_route, per_km, per_ton, per_hour]
-        vat_included:
-          type: boolean
-          default: false
-
-    Offer:
-      type: object
-      required: [id, load_id, carrier_org_id, status, price, created_at, updated_at]
-      properties:
-        id:
-          type: string
-          format: uuid
-          readOnly: true
-        load_id:
-          type: string
-          format: uuid
-          readOnly: true
-        carrier_org_id:
-          type: string
-          format: uuid
-          readOnly: true
-          description: ID организации-перевозчика
-        status:
-          type: string
-          enum: [pending, countered, accepted, rejected, expired]
-          description: Статус оффера
-        price:
-          $ref: '#/components/schemas/Price'
-        counter_price:
-          $ref: '#/components/schemas/Price'
-          description: Встречная цена от грузовладельца (если есть)
-        vehicle_id:
-          type: string
-          format: uuid
-        driver_id:
-          type: string
-          format: uuid
-        pickup_at:
-          type: string
-          format: date-time
-          description: Плановое время подачи транспорта
-        comment:
-          type: string
-          maxLength: 2000
-        reject_reason:
-          type: string
-          maxLength: 1000
-          description: Причина отклонения (если статус rejected)
-        expires_at:
-          type: string
-          format: date-time
-          readOnly: true
-          description: Срок действия оффера
-        created_at:
-          type: string
-          format: date-time
-          readOnly: true
-        updated_at:
-          type: string
-          format: date-time
-          readOnly: true
-
-    OfferListResponse:
-      type: object
-      required: [data]
-      properties:
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/Offer'
-        next_cursor:
-          type: string
-        total_count:
-          type: integer
-
-    CreateOfferRequest:
-      type: object
-      required: [price, vehicle_id, driver_id]
-      properties:
-        price:
-          $ref: '#/components/schemas/Price'
-        vehicle_id:
-          type: string
-          format: uuid
-          description: ID транспортного средства
-        driver_id:
-          type: string
-          format: uuid
-          description: ID водителя
-        trailer_id:
-          type: string
-          format: uuid
-          description: ID прицепа
-        pickup_at:
-          type: string
-          format: date-time
-          description: Плановое время подачи ТС под погрузку
-        comment:
-          type: string
-          maxLength: 2000
-
-    CounterOfferRequest:
-      type: object
-      required: [price]
-      properties:
-        price:
-          $ref: '#/components/schemas/Price'
-        comment:
-          type: string
-          maxLength: 2000
-
-    RejectOfferRequest:
-      type: object
-      properties:
-        reason:
-          type: string
-          maxLength: 1000
-          description: Причина отклонения
-
-    AcceptOfferResponse:
-      type: object
-      required: [offer, transport_order_id]
-      properties:
-        offer:
-          $ref: '#/components/schemas/Offer'
-        transport_order_id:
-          type: string
-          format: uuid
-          description: ID созданного транспортного заказа
-
-    ErrorResponse:
-      type: object
-      required: [error]
-      properties:
-        error:
-          type: object
-          required: [code, message]
-          properties:
-            code:
-              type: string
-            message:
-              type: string
-            details:
-              type: array
-              items:
-                type: object
-                properties:
-                  field:
-                    type: string
-                  message:
-                    type: string
-            trace_id:
-              type: string
-              format: uuid
-
-  responses:
-    BadRequest:
-      description: Некорректный запрос
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorResponse'
-    Unauthorized:
-      description: Требуется авторизация
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorResponse'
-    Forbidden:
-      description: Доступ запрещён
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorResponse'
-    NotFound:
-      description: Ресурс не найден
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorResponse'
-    Conflict:
-      description: Конфликт состояния
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorResponse'
-    UnprocessableEntity:
-      description: Ошибка валидации
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorResponse'

@@ -1,0 +1,40 @@
+openapi: 3.1.0
+info:
+  title: Документооборот и PoD
+  version: 1.0.0
+  description: Документооборот и PoD
+paths:
+  /api/v1/documents/upload:
+    post:
+      summary: загрузка файла
+      responses:
+        '200':
+          description: OK
+  /api/v1/shipments/{id}/documents:
+    get:
+      summary: список прикрепленных документов
+      responses:
+        '200':
+          description: OK
+  /api/v1/shipments/{id}/pod:
+    post:
+      summary: отправка подтверждения
+      responses:
+        '200':
+          description: OK
+  /api/v1/documents/{id}/sign:
+    post:
+      summary: наложение электронной подписи
+      responses:
+        '200':
+          description: OK
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key

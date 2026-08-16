@@ -1,679 +1,101 @@
 openapi: 3.1.0
-
 info:
-  title: Грузы — API логистической платформы
+  title: Управление грузами и поиск
   version: 1.0.0
-  description: |
-    REST API для управления грузами: публикация, поиск, обновление, отзыв и бронирование.
-    Используется грузовладельцами для размещения заявок и перевозчиками для поиска грузов.
-
-servers:
-  - url: https://api.cargo-platform.ru
-    description: Продакшн
-
-security:
-  - BearerAuth: []
-  - ApiKeyAuth: []
-
-tags:
-  - name: loads
-    description: Управление грузами и поиск
-
+  description: API для управления и поиска грузов
 paths:
   /api/v1/loads:
     get:
-      tags: [loads]
-      operationId: searchLoads
       summary: Расширенный поиск грузов
-      description: Возвращает список грузов, соответствующих заданным параметрам фильтрации и геопоиска.
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
       parameters:
         - name: origin_lat
           in: query
-          description: Широта точки отправления
           schema:
             type: number
             format: float
-            minimum: -90
-            maximum: 90
-        - name: origin_lon
-          in: query
-          description: Долгота точки отправления
-          schema:
-            type: number
-            format: float
-            minimum: -180
-            maximum: 180
-        - name: origin_radius_km
-          in: query
-          description: Радиус поиска от точки отправления (км)
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 1000
-            default: 50
-        - name: dest_lat
-          in: query
-          description: Широта точки назначения
-          schema:
-            type: number
-            format: float
-            minimum: -90
-            maximum: 90
-        - name: dest_lon
-          in: query
-          description: Долгота точки назначения
-          schema:
-            type: number
-            format: float
-            minimum: -180
-            maximum: 180
-        - name: dest_radius_km
-          in: query
-          description: Радиус поиска от точки назначения (км)
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 1000
-            default: 50
-        - name: pickup_date_from
-          in: query
-          description: Дата погрузки — начало диапазона
-          schema:
-            type: string
-            format: date
-        - name: pickup_date_to
-          in: query
-          description: Дата погрузки — конец диапазона
-          schema:
-            type: string
-            format: date
-        - name: body_types
-          in: query
-          description: Типы кузова (можно несколько)
-          explode: true
-          schema:
-            type: array
-            items:
-              type: string
-              enum: [tent, refrigerator, isotherm, container, flatbed, tanker, auto_carrier, jumbo]
-        - name: min_weight
-          in: query
-          description: Минимальный вес груза (т)
-          schema:
-            type: number
-            format: float
-            minimum: 0
-        - name: max_weight
-          in: query
-          description: Максимальный вес груза (т)
-          schema:
-            type: number
-            format: float
-            minimum: 0
-        - name: cursor
-          in: query
-          description: Курсор для постраничного перемещения
-          schema:
-            type: string
         - name: limit
           in: query
-          description: Количество записей на страницу
           schema:
             type: integer
             minimum: 1
             maximum: 100
-            default: 20
-        - $ref: '#/components/parameters/XTraceId'
       responses:
         '200':
-          description: Список грузов
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/LoadListResponse'
-              example:
-                data:
-                  - id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
-                    status: published
-                    cargo:
-                      name: "Металлопрокат"
-                      weight_t: 20.5
-                      volume_m3: 40.0
-                    route:
-                      origin:
-                        address: "г. Москва, ул. Промышленная, 1"
-                        lat: 55.7558
-                        lon: 37.6173
-                      destination:
-                        address: "г. Екатеринбург, ул. Заводская, 10"
-                        lat: 56.8519
-                        lon: 60.6122
-                    pickup_date: "2026-09-01"
-                    price:
-                      amount: 85000
-                      currency: RUB
-                      payment_type: per_route
-                next_cursor: "dXNlcjoxMjM0NTY3ODk"
-                total_count: 142
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '422':
-          $ref: '#/components/responses/UnprocessableEntity'
-
+          description: OK
     post:
-      tags: [loads]
-      operationId: createLoad
       summary: Публикация нового груза
-      description: Создаёт новую заявку на перевозку груза. Груз получает статус `published` и становится доступным для поиска.
+      security:
+        - BearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/IdempotencyKey'
-        - $ref: '#/components/parameters/XTraceId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateLoadRequest'
-            example:
-              cargo:
-                name: "Металлопрокат"
-                description: "Листовая сталь, 3 мм"
-                weight_t: 20.5
-                volume_m3: 40.0
-                body_types: [tent, flatbed]
-              route:
-                origin:
-                  address: "г. Москва, ул. Промышленная, 1"
-                  lat: 55.7558
-                  lon: 37.6173
-                destination:
-                  address: "г. Екатеринбург, ул. Заводская, 10"
-                  lat: 56.8519
-                  lon: 60.6122
-              pickup_date: "2026-09-01"
-              price:
-                amount: 85000
-                currency: RUB
-                payment_type: per_route
-                vat_included: true
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
       responses:
         '201':
-          description: Груз опубликован
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Load'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '409':
-          $ref: '#/components/responses/Conflict'
-        '422':
-          $ref: '#/components/responses/UnprocessableEntity'
-
+          description: Created
   /api/v1/loads/{id}:
-    parameters:
-      - $ref: '#/components/parameters/LoadId'
-      - $ref: '#/components/parameters/XTraceId'
-
     get:
-      tags: [loads]
-      operationId: getLoad
       summary: Детальная карточка груза
-      description: Возвращает полную информацию о грузе, включая контактные данные (только для авторизованных).
-      responses:
-        '200':
-          description: Детальная информация о грузе
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Load'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-
-    put:
-      tags: [loads]
-      operationId: updateLoad
-      summary: Обновление данных груза
-      description: Обновляет параметры груза. Доступно только владельцу груза. Груз должен быть в статусе `published` или `draft`.
       parameters:
-        - $ref: '#/components/parameters/IdempotencyKey'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateLoadRequest'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
       responses:
         '200':
-          description: Данные груза обновлены
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Load'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-        '422':
-          $ref: '#/components/responses/UnprocessableEntity'
-
+          description: OK
+    put:
+      summary: Обновление данных груза
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
     delete:
-      tags: [loads]
-      operationId: deleteLoad
       summary: Отзыв груза с публикации
-      description: Снимает груз с публикации. Активные офферы по данному грузу автоматически отклоняются.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
       responses:
         '204':
-          description: Груз снят с публикации
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-
+          description: No Content
   /api/v1/loads/{id}/reserve:
     post:
-      tags: [loads]
-      operationId: reserveLoad
       summary: Бронирование груза
-      description: Резервирует груз для текущего перевозчика. Груз переходит в статус `reserved`.
       parameters:
-        - $ref: '#/components/parameters/LoadId'
-        - $ref: '#/components/parameters/IdempotencyKey'
-        - $ref: '#/components/parameters/XTraceId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ReserveLoadRequest'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
       responses:
         '200':
-          description: Груз успешно забронирован
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Load'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-
+          description: OK
 components:
   securitySchemes:
     BearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: JWT-токен, полученный через POST /api/v1/auth/token
     ApiKeyAuth:
       type: apiKey
       in: header
       name: X-API-Key
-      description: Статический API-ключ для server-to-server интеграций
-
-  parameters:
-    LoadId:
-      name: id
-      in: path
-      required: true
-      description: Уникальный идентификатор груза (UUID)
-      schema:
-        type: string
-        format: uuid
-    IdempotencyKey:
-      name: Idempotency-Key
-      in: header
-      required: true
-      description: Ключ идемпотентности (UUIDv4). Повторный запрос с тем же ключом вернёт кешированный результат.
-      schema:
-        type: string
-        format: uuid
-        pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$'
-    XTraceId:
-      name: X-Trace-Id
-      in: header
-      required: false
-      description: Идентификатор трассировки для distributed tracing (UUID)
-      schema:
-        type: string
-        format: uuid
-
-  schemas:
-    GeoPoint:
-      type: object
-      required: [lat, lon]
-      properties:
-        lat:
-          type: number
-          format: float
-          minimum: -90
-          maximum: 90
-          description: Широта
-        lon:
-          type: number
-          format: float
-          minimum: -180
-          maximum: 180
-          description: Долгота
-        address:
-          type: string
-          maxLength: 500
-          description: Адрес в текстовом формате
-
-    Price:
-      type: object
-      required: [amount, currency, payment_type]
-      properties:
-        amount:
-          type: number
-          format: float
-          minimum: 0
-          description: Сумма оплаты
-        currency:
-          type: string
-          enum: [RUB, USD, EUR, KZT, BYN]
-          description: Валюта
-        payment_type:
-          type: string
-          enum: [per_route, per_km, per_ton, per_hour]
-          description: Тип расчёта
-        vat_included:
-          type: boolean
-          default: false
-          description: НДС включён в стоимость
-
-    CargoDetails:
-      type: object
-      required: [name, weight_t, body_types]
-      properties:
-        name:
-          type: string
-          minLength: 2
-          maxLength: 200
-          description: Наименование груза
-        description:
-          type: string
-          maxLength: 2000
-          description: Подробное описание
-        weight_t:
-          type: number
-          format: float
-          minimum: 0.001
-          maximum: 200
-          description: Вес груза в тоннах
-        volume_m3:
-          type: number
-          format: float
-          minimum: 0
-          maximum: 200
-          description: Объём груза в м³
-        body_types:
-          type: array
-          minItems: 1
-          items:
-            type: string
-            enum: [tent, refrigerator, isotherm, container, flatbed, tanker, auto_carrier, jumbo]
-          description: Допустимые типы кузова
-        temperature_min:
-          type: integer
-          minimum: -30
-          maximum: 30
-          description: Минимальная температура перевозки (°C)
-        temperature_max:
-          type: integer
-          minimum: -30
-          maximum: 30
-          description: Максимальная температура перевозки (°C)
-        hazmat_class:
-          type: string
-          pattern: '^[1-9](\\.[1-9])?$'
-          description: Класс опасного груза по ADR (если применимо)
-        adr_required:
-          type: boolean
-          default: false
-          description: Требуется разрешение ADR
-
-    RouteInfo:
-      type: object
-      required: [origin, destination]
-      properties:
-        origin:
-          $ref: '#/components/schemas/GeoPoint'
-        destination:
-          $ref: '#/components/schemas/GeoPoint'
-        waypoints:
-          type: array
-          maxItems: 20
-          items:
-            $ref: '#/components/schemas/GeoPoint'
-          description: Промежуточные точки маршрута
-        distance_km:
-          type: number
-          format: float
-          minimum: 0
-          readOnly: true
-          description: Расстояние маршрута (км), вычисляется системой
-
-    Load:
-      type: object
-      required: [id, status, cargo, route, pickup_date, price, created_at, updated_at]
-      properties:
-        id:
-          type: string
-          format: uuid
-          readOnly: true
-          description: Уникальный идентификатор груза
-        status:
-          type: string
-          enum: [draft, published, reserved, in_transit, completed, cancelled]
-          description: Статус груза
-        cargo:
-          $ref: '#/components/schemas/CargoDetails'
-        route:
-          $ref: '#/components/schemas/RouteInfo'
-        pickup_date:
-          type: string
-          format: date
-          description: Плановая дата погрузки
-        delivery_date:
-          type: string
-          format: date
-          description: Плановая дата доставки
-        price:
-          $ref: '#/components/schemas/Price'
-        owner_org_id:
-          type: string
-          format: uuid
-          readOnly: true
-          description: ID организации-грузовладельца
-        created_at:
-          type: string
-          format: date-time
-          readOnly: true
-        updated_at:
-          type: string
-          format: date-time
-          readOnly: true
-
-    LoadListResponse:
-      type: object
-      required: [data]
-      properties:
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/Load'
-        next_cursor:
-          type: string
-          description: Курсор для получения следующей страницы
-        total_count:
-          type: integer
-          description: Общее количество записей
-
-    CreateLoadRequest:
-      type: object
-      required: [cargo, route, pickup_date, price]
-      properties:
-        cargo:
-          $ref: '#/components/schemas/CargoDetails'
-        route:
-          $ref: '#/components/schemas/RouteInfo'
-        pickup_date:
-          type: string
-          format: date
-        delivery_date:
-          type: string
-          format: date
-        price:
-          $ref: '#/components/schemas/Price'
-
-    UpdateLoadRequest:
-      type: object
-      properties:
-        cargo:
-          $ref: '#/components/schemas/CargoDetails'
-        route:
-          $ref: '#/components/schemas/RouteInfo'
-        pickup_date:
-          type: string
-          format: date
-        delivery_date:
-          type: string
-          format: date
-        price:
-          $ref: '#/components/schemas/Price'
-
-    ReserveLoadRequest:
-      type: object
-      required: [vehicle_id, driver_id]
-      properties:
-        vehicle_id:
-          type: string
-          format: uuid
-          description: ID транспортного средства
-        driver_id:
-          type: string
-          format: uuid
-          description: ID водителя
-        trailer_id:
-          type: string
-          format: uuid
-          description: ID прицепа (если требуется)
-        comment:
-          type: string
-          maxLength: 1000
-          description: Комментарий к бронированию
-
-    ErrorResponse:
-      type: object
-      required: [error]
-      properties:
-        error:
-          type: object
-          required: [code, message]
-          properties:
-            code:
-              type: string
-              description: Машиночитаемый код ошибки
-            message:
-              type: string
-              description: Человекочитаемое описание ошибки
-            details:
-              type: array
-              items:
-                type: object
-                properties:
-                  field:
-                    type: string
-                  message:
-                    type: string
-            trace_id:
-              type: string
-              format: uuid
-
-  responses:
-    BadRequest:
-      description: Некорректный запрос
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorResponse'
-          example:
-            error:
-              code: BAD_REQUEST
-              message: "Некорректные параметры запроса"
-    Unauthorized:
-      description: Требуется авторизация
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorResponse'
-          example:
-            error:
-              code: UNAUTHORIZED
-              message: "Необходима авторизация"
-    Forbidden:
-      description: Доступ запрещён
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorResponse'
-          example:
-            error:
-              code: FORBIDDEN
-              message: "Недостаточно прав для выполнения операции"
-    NotFound:
-      description: Ресурс не найден
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorResponse'
-          example:
-            error:
-              code: NOT_FOUND
-              message: "Груз не найден"
-    Conflict:
-      description: Конфликт состояния ресурса
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorResponse'
-          example:
-            error:
-              code: CONFLICT
-              message: "Груз уже забронирован другим перевозчиком"
-    UnprocessableEntity:
-      description: Ошибка валидации
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorResponse'
-          example:
-            error:
-              code: VALIDATION_ERROR
-              message: "Ошибка валидации данных"
-              details:
-                - field: "cargo.weight_t"
-                  message: "Значение должно быть больше 0"

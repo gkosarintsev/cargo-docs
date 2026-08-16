@@ -1,0 +1,40 @@
+openapi: 3.1.0
+info:
+  title: Транспортные заказы
+  version: 1.0.0
+  description: Транспортные заказы
+paths:
+  /api/v1/transport-orders:
+    get:
+      summary: список заказов
+      responses:
+        '200':
+          description: OK
+  /api/v1/transport-orders/{id}:
+    get:
+      summary: детальный заказ
+      responses:
+        '200':
+          description: OK
+  /api/v1/transport-orders/{id}/sign:
+    post:
+      summary: электронное подписание
+      responses:
+        '200':
+          description: OK
+  /api/v1/transport-orders/{id}/cancel:
+    post:
+      summary: отмена заказа
+      responses:
+        '200':
+          description: OK
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key

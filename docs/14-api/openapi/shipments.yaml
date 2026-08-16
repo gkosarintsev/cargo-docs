@@ -1,0 +1,46 @@
+openapi: 3.1.0
+info:
+  title: Исполнение перевозки
+  version: 1.0.0
+  description: Исполнение перевозки
+paths:
+  /api/v1/shipments:
+    get:
+      summary: список активных и архивных перевозок
+      responses:
+        '200':
+          description: OK
+  /api/v1/shipments/{id}:
+    get:
+      summary: полная карточка рейса
+      responses:
+        '200':
+          description: OK
+  /api/v1/shipments/{id}/assign:
+    post:
+      summary: назначение тягача
+      responses:
+        '200':
+          description: OK
+  /api/v1/shipments/{id}/status:
+    post:
+      summary: обновление статуса
+      responses:
+        '200':
+          description: OK
+  /api/v1/shipments/{id}/exceptions:
+    post:
+      summary: регистрация нештатной ситуации
+      responses:
+        '200':
+          description: OK
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key

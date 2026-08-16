@@ -1,0 +1,44 @@
+openapi: 3.1.0
+info:
+  title: Профили компаний
+  version: 1.0.0
+  description: Профили компаний
+paths:
+  /api/v1/organizations/me:
+    get:
+      summary: профиль
+      responses:
+        '200':
+          description: OK
+    patch:
+      summary: редактирование
+      responses:
+        '200':
+          description: OK
+  /api/v1/organizations/{id}/public-profile:
+    get:
+      summary: публичная карточка
+      responses:
+        '200':
+          description: OK
+  /api/v1/organizations/me/users:
+    get:
+      summary: сотрудники
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: управление
+      responses:
+        '200':
+          description: OK
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
