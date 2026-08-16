@@ -1,0 +1,42 @@
+@startuml
+!include <C4/C4_Component>
+
+title Component Diagram - Tracking & Telematics Processor
+
+Container_Boundary(tracking_service, "Tracking & Telematics Processor") {
+    Component(gps_packet_decoder, "GpsPacketDecoder", "Infrastructure Service", "Декодирование сырых пакетов телеметрии")
+    Component(telemetry_validator, "TelemetryValidator", "Domain Service", "Очистка и валидация координат, фильтрация выбросов")
+    Component(kafka_producer, "KafkaProducer", "Infrastructure Service", "Публикация обработанных событий в топики")
+    Component(geofence_evaluator, "GeofenceEvaluator", "Domain Service", "Определение входа/выхода из геозон (Geofencing)")
+    Component(eta_calculator, "EtaCalculator", "Domain Service", "Расчет ожидаемого времени прибытия (ETA)")
+    Component(position_redis_writer, "PositionRedisWriter", "Infrastructure Service", "Обновление последней известной позиции в кэше")
+    Component(ts_history_writer, "TimeSeriesHistoryWriter", "Infrastructure Service", "Пакетная запись истории в TimeSeries БД")
+    Component(ws_broadcaster, "WebSocketBroadcaster", "Infrastructure Service", "Отправка уведомлений в Realtime Gateway")
+}
+
+ContainerDb(kafka, "Message Streaming Bus", "Apache Kafka", "Event bus")
+ContainerDb(ts_db, "Telematics TimeSeries DB", "TimescaleDB", "TSDB")
+ContainerDb(redis, "In-Memory Cache", "Redis", "Кэш")
+Container(ws_gw, "Realtime / WebSocket Gateway", "Node.js", "WSS Server")
+System_Ext(maps, "Map Services", "OSRM / Yandex", "Route / Matrix API")
+
+Rel(kafka, gps_packet_decoder, "Чтение сырой телеметрии", "Kafka Consumer: gps.raw")
+Rel(gps_packet_decoder, telemetry_validator, "Передача данных", "Method call")
+Rel(telemetry_validator, geofence_evaluator, "Проверка зон", "Method call")
+Rel(telemetry_validator, eta_calculator, "Пересчет ETA", "Method call")
+
+Rel(telemetry_validator, position_redis_writer, "Сохранить Last Position", "Method call")
+Rel(telemetry_validator, ts_history_writer, "Сохранить историю", "Method call")
+
+Rel(position_redis_writer, redis, "Обновление ключей", "TCP/RESP")
+Rel(ts_history_writer, ts_db, "Insert/Batch", "TCP/SQL")
+
+Rel(geofence_evaluator, kafka_producer, "События (вход/выход)", "Method call")
+Rel(eta_calculator, maps, "Запрос маршрута", "HTTPS/JSON")
+Rel(eta_calculator, kafka_producer, "События (смена ETA)", "Method call")
+
+Rel(kafka_producer, kafka, "Публикация событий трекинга", "Kafka Topic: tracking.events")
+Rel(telemetry_validator, ws_broadcaster, "Отправка в UI", "Method call")
+Rel(ws_broadcaster, ws_gw, "Внутренний Push", "HTTPS / gRPC")
+
+@enduml

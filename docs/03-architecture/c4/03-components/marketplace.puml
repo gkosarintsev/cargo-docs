@@ -1,0 +1,39 @@
+@startuml
+!include <C4/C4_Component>
+
+title Component Diagram - Marketplace & Matching Service
+
+Container_Boundary(marketplace_service, "Marketplace & Matching Service") {
+    Component(load_ctrl, "LoadController", "REST API", "Обрабатывает HTTP-запросы управления грузами")
+    Component(truck_ctrl, "TruckController", "REST API", "Обрабатывает HTTP-запросы управления транспортом")
+    Component(offer_svc, "OfferService", "Application Service", "Бизнес-логика публикации и управления офферами")
+    Component(matching_engine, "MatchingEngine", "Domain Service", "Логика сопоставления грузов и транспорта, расчет скоринга")
+    Component(search_adapter, "SearchAdapter", "Infrastructure Service", "Интеграция с Search Engine (OpenSearch/Elasticsearch)")
+    Component(negotiation_mgr, "NegotiationManager", "Domain Service", "Управление ставками и торгами (Tenders)")
+    Component(outbox_pub, "OutboxPublisher", "Infrastructure Service", "Гарантированная публикация событий в Kafka")
+    Component(marketplace_repo, "MarketplaceRepository", "Repository", "Доступ к данным БД для Marketplace")
+}
+
+Container(api_gw, "API Gateway", "Traefik/Envoy", "Reverse Proxy")
+ContainerDb(primary_db, "Primary OLTP DB", "PostgreSQL", "Database")
+ContainerDb(search_engine, "Search Engine", "Elasticsearch", "Search index")
+ContainerDb(kafka, "Message Streaming Bus", "Apache Kafka", "Event bus")
+
+Rel(api_gw, load_ctrl, "API вызовы", "HTTPS/JSON")
+Rel(api_gw, truck_ctrl, "API вызовы", "HTTPS/JSON")
+
+Rel(load_ctrl, offer_svc, "Делегирует", "Method call")
+Rel(truck_ctrl, offer_svc, "Делегирует", "Method call")
+
+Rel(offer_svc, matching_engine, "Инициирует матчинг", "Method call")
+Rel(offer_svc, negotiation_mgr, "Управление торгами", "Method call")
+Rel(offer_svc, marketplace_repo, "Сохранение состояния", "Method call")
+Rel(offer_svc, outbox_pub, "Регистрация событий", "Method call")
+
+Rel(matching_engine, search_adapter, "Поиск кандидатов", "Method call")
+Rel(search_adapter, search_engine, "Выполнение запросов", "HTTP/JSON")
+
+Rel(marketplace_repo, primary_db, "SQL запросы", "TCP/SQL")
+Rel(outbox_pub, kafka, "Публикация событий", "Kafka Topic: marketplace.events")
+
+@enduml

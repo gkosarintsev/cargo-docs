@@ -1,0 +1,35 @@
+@startuml
+!include <C4/C4_Context>
+
+title System Context Diagram - Цифровая логистическая платформа
+
+Person(shipper, "Грузовладелец / Экспедитор", "Размещает грузы, ищет транспорт")
+Person(carrier, "Перевозчик / Диспетчер", "Ищет грузы, управляет автопарком")
+Person(driver, "Водитель", "Выполняет рейсы, отмечает статусы")
+Person_Ext(admin, "Администратор", "Управление и поддержка платформы")
+
+System(platform, "Цифровая логистическая платформа", "Обеспечивает поиск, матчинг и исполнение грузоперевозок")
+
+System_Ext(tms, "Внешние TMS/ERP", "Системы клиентов")
+System_Ext(gps, "GPS-провайдеры", "Wialon, Omnicomm и др.")
+System_Ext(maps, "Карты / Маршрутизация", "OSRM, Yandex Maps, HERE")
+System_Ext(payment, "Банк / Платежи", "Эквайринг, СБП, B2B")
+System_Ext(edo, "Провайдер ЭДО", "ГИС ЭПД, eCMR")
+System_Ext(kyc, "Верификация юрлиц", "ФНС, Контур.Фокус, DaData")
+System_Ext(notify, "SMS/Email шлюзы", "Уведомления пользователям")
+
+Rel(shipper, platform, "Использует", "HTTPS")
+Rel(carrier, platform, "Использует", "HTTPS")
+Rel(driver, platform, "Использует", "HTTPS")
+Rel(admin, platform, "Управляет", "HTTPS")
+
+Rel(platform, tms, "Обмен данными (Out)", "Webhooks, HTTPS/JSON")
+Rel(tms, platform, "Обмен данными (In)", "REST API, HTTPS/JSON")
+Rel(gps, platform, "Телеметрия", "TCP/MQTT, HTTP/JSON")
+Rel(platform, maps, "Геокодинг, маршруты", "REST API, HTTPS/JSON")
+Rel(platform, payment, "Транзакции", "REST API, HTTPS/JSON")
+Rel(platform, edo, "Обмен документами", "REST API/SOAP")
+Rel(platform, kyc, "Проверка контрагентов", "REST API, HTTPS/JSON")
+Rel(platform, notify, "Отправка сообщений", "REST API/gRPC")
+
+@enduml

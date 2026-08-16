@@ -1,0 +1,79 @@
+@startuml
+!include <C4/C4_Container>
+
+title Container Diagram - Цифровая логистическая платформа
+
+Person(user, "Пользователи", "Грузовладельцы, Перевозчики, Диспетчеры")
+Person(driver, "Водители", "Исполнители рейсов")
+Person_Ext(admin, "Администраторы", "Сотрудники поддержки")
+
+System_Boundary(platform_boundary, "Цифровая логистическая платформа") {
+    Container(web_spa, "Web SPA", "React/Vue/TypeScript", "Клиентское приложение для пользователей")
+    Container(mobile_app, "Driver Mobile App", "Flutter/React Native/Native", "Мобильное приложение водителя")
+    Container(admin_portal, "Admin Web Portal", "React/TypeScript", "Портал администратора")
+    
+    Container(api_gw, "API Gateway / Reverse Proxy", "Traefik/Envoy/Nginx", "Маршрутизация, TLS терминация")
+    
+    Container(core_api, "Core Monolith / API Service", "Node.js / Go / Java", "IAM, Organization, Billing, Document metadata")
+    Container(marketplace, "Marketplace & Matching Service", "Go / Java", "Loads, Trucks, Offers, Tenders")
+    Container(search_engine, "Search Engine Cluster", "OpenSearch / Elasticsearch", "Полнотекстовый и геопространственный поиск")
+    Container(gps_gw, "GPS Ingestion Gateway", "Go/Rust/Netty", "Высокопроизводительный прием телеметрии")
+    Container(tracking, "Tracking & Telematics Processor", "Go / Java", "Обработка геозон, ETA, стриминг")
+    Container(ws_gw, "Realtime / WebSocket Gateway", "Node.js / Go", "Push координат и статусов диспетчерам")
+    Container(notification, "Notification Worker", "Python / Node.js", "Асинхронная отправка уведомлений")
+    Container(doc_worker, "Document Processing & PDF/eCMR Worker", "Python / Java", "Генерация PDF, обработка eCMR")
+    
+    ContainerDb(primary_db, "Primary OLTP DB", "PostgreSQL", "Основное реляционное хранилище")
+    ContainerDb(ts_db, "Telematics TimeSeries DB", "TimescaleDB / ClickHouse", "Хранение истории координат")
+    ContainerDb(redis, "In-Memory Cache & Pub/Sub", "Redis", "Кэширование, сессии, Pub/Sub")
+    ContainerDb(kafka, "Message Streaming Bus", "Apache Kafka", "Брокер сообщений, Event Streaming")
+    ContainerDb(s3, "Object Storage", "MinIO / S3", "Хранение файлов и скан-копий")
+}
+
+System_Ext(ext_systems, "Внешние системы", "TMS, Карты, ЭДО, Платежи и др.")
+
+Rel(user, web_spa, "Использует", "HTTPS")
+Rel(driver, mobile_app, "Использует", "HTTPS")
+Rel(admin, admin_portal, "Использует", "HTTPS")
+
+Rel(web_spa, api_gw, "API вызовы", "HTTPS/JSON")
+Rel(mobile_app, api_gw, "API вызовы", "HTTPS/JSON")
+Rel(admin_portal, api_gw, "API вызовы", "HTTPS/JSON")
+
+Rel(web_spa, ws_gw, "Подключение к сокетам", "WSS")
+Rel(mobile_app, ws_gw, "Подключение к сокетам", "WSS")
+
+Rel(api_gw, core_api, "Маршрутизирует", "HTTP/JSON")
+Rel(api_gw, marketplace, "Маршрутизирует", "HTTP/JSON")
+Rel(api_gw, tracking, "Маршрутизирует", "HTTP/JSON")
+Rel(api_gw, gps_gw, "Телеметрия (HTTP)", "HTTP/JSON")
+
+Rel(core_api, primary_db, "Чтение/Запись", "TCP/SQL")
+Rel(marketplace, primary_db, "Чтение/Запись", "TCP/SQL")
+Rel(tracking, primary_db, "Чтение/Запись", "TCP/SQL")
+
+Rel(marketplace, search_engine, "Синхронизация и поиск", "HTTP/REST")
+Rel(core_api, redis, "Кэш/Сессии", "TCP/RESP")
+Rel(marketplace, redis, "Кэш", "TCP/RESP")
+
+Rel(gps_gw, kafka, "Публикация сырых геоданных", "Kafka Topic: gps.raw")
+Rel(kafka, tracking, "Потребление геоданных", "Kafka Consumer")
+Rel(tracking, ts_db, "Запись истории геоданных", "TCP/SQL")
+Rel(tracking, redis, "Обновление последней позиции", "TCP/RESP")
+Rel(tracking, kafka, "Публикация событий (ETA, Geofence)", "Kafka Topic: tracking.events")
+
+Rel(kafka, ws_gw, "Ретрансляция событий", "Kafka Consumer")
+Rel(kafka, notification, "События уведомлений", "Kafka Consumer")
+Rel(kafka, doc_worker, "Задачи на документы", "Kafka Consumer")
+
+Rel(core_api, kafka, "Публикация доменных событий", "Kafka Topic: core.events")
+Rel(marketplace, kafka, "Публикация доменных событий", "Kafka Topic: marketplace.events")
+
+Rel(core_api, s3, "Управление файлами", "HTTPS/S3 API")
+Rel(doc_worker, s3, "Сохранение PDF/документов", "HTTPS/S3 API")
+
+Rel(core_api, ext_systems, "Интеграции", "HTTPS/JSON")
+Rel(notification, ext_systems, "Отправка Push/SMS/Email", "HTTPS/JSON")
+Rel(gps_gw, ext_systems, "Получение сырой телеметрии", "TCP/MQTT")
+
+@enduml

@@ -1,0 +1,36 @@
+@startuml
+!include <C4/C4_Component>
+
+title Component Diagram - Transport Execution
+
+Container_Boundary(transport_service, "Transport Execution Service") {
+    Component(order_ctrl, "OrderController", "REST API", "Управление заказами (создание, отмена, просмотр)")
+    Component(shipment_state_machine, "ShipmentStateMachine", "Domain Service", "Конечный автомат жизненного цикла рейса")
+    Component(driver_assigner, "DriverAssigner", "Domain Service", "Назначение водителей и транспортных средств на рейс")
+    Component(exception_manager, "ExceptionManager", "Domain Service", "Обработка инцидентов и проблем в пути")
+    Component(pod_handler, "PodHandler", "Application Service", "Обработка подтверждений доставки (Proof of Delivery)")
+    Component(event_consumer, "EventConsumer", "Infrastructure Service", "Слушатель событий")
+    Component(order_repo, "OrderRepository", "Repository", "Управление данными заказов")
+}
+
+Container(api_gw, "API Gateway", "Traefik", "Reverse Proxy")
+ContainerDb(kafka, "Message Streaming Bus", "Apache Kafka", "Event bus")
+ContainerDb(primary_db, "Primary OLTP DB", "PostgreSQL", "Database")
+
+Rel(api_gw, order_ctrl, "API вызовы", "HTTPS/JSON")
+Rel(order_ctrl, shipment_state_machine, "Управление стейтом", "Method call")
+Rel(order_ctrl, driver_assigner, "Назначение ТС", "Method call")
+Rel(order_ctrl, pod_handler, "Управление документами", "Method call")
+
+Rel(kafka, event_consumer, "Слушает события", "Kafka Consumer")
+Rel(event_consumer, shipment_state_machine, "Триггеры статусов", "Method call")
+Rel(event_consumer, exception_manager, "Оповещение об инцидентах", "Method call")
+
+Rel(shipment_state_machine, order_repo, "Сохранение стейта", "Method call")
+Rel(driver_assigner, order_repo, "Обновление назначения", "Method call")
+Rel(exception_manager, order_repo, "Запись лога инцидента", "Method call")
+Rel(pod_handler, order_repo, "Прикрепление PoD", "Method call")
+
+Rel(order_repo, primary_db, "SQL запросы", "TCP/SQL")
+
+@enduml
