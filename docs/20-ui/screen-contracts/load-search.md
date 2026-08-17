@@ -8,27 +8,7 @@
 
 ## Диаграмма состояний интерфейса
 
-```mermaid
-stateDiagram-v2
-    [*] --> SkeletonLoading: Открытие поиска
-    SkeletonLoading --> ResultsList: GET /api/v1/loads (200 OK)
-    
-    state ResultsList {
-        [*] --> Idle
-        Idle --> Filtering: Изменение чекбокса/ползунка
-        Filtering --> Idle: Обновление списка (Debounce 300ms)
-        
-        Idle --> Scrolling: Скролл вниз
-        Scrolling --> FetchingNextPage: Достигнут порог
-        FetchingNextPage --> Idle: Новые карточки добавлены снизу
-        
-        Idle --> WsBadgeActive: WS Push: "new_load_match"
-        WsBadgeActive --> Idle: Клик "Показать +3 новых груза" (Pull-to-top)
-    }
-    
-    ResultsList --> EmptyState: Нет результатов
-    EmptyState --> ResultsList: Сброс фильтров
-```
+![Диаграмма состояний поиска грузов](images/load-search-states.svg)
 
 ## Детальные поведенческие контракты
 - **Фильтрация**: Изменение любого фильтра вызывает обновление списка без перезагрузки страницы (Debounce 300-500ms). Старый список становится полупрозрачным (opacity 0.6) + spinner.

@@ -9,23 +9,7 @@
 
 ## Диаграмма состояний интерфейса
 
-```mermaid
-stateDiagram-v2
-    [*] --> MapInitialized: Загрузка карты и списка
-    
-    state MapInitialized {
-        [*] --> TrackingActive
-        
-        TrackingActive --> Interpolating: WS Push (Новая GPS точка)
-        Interpolating --> TrackingActive: Плавный сдвиг маркера
-        
-        TrackingActive --> AlertReceived: WS Push (Поломка / Срыв сроков)
-        AlertReceived --> AlertHighlighted: Карточка краснеет, маркер пульсирует
-        
-        AlertHighlighted --> FocusMachine: Клик диспетчером по алерту
-        FocusMachine --> OpenDrawer: Центрирование карты + Открытие панели
-    }
-```
+![Диаграмма состояний диспетчерского пульта](images/dispatcher-board-states.svg)
 
 ## Детальные поведенческие контракты
 - **WebSocket Телеметрия**: На клиент приходит событие `gps_position_updated` с частотой раз в 10-30 секунд. Маркер грузовика на карте не "прыгает", а плавно переезжает на новые координаты с помощью CSS/JS анимации (интерполяция).

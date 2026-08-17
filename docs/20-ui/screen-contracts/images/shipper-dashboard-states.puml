@@ -1,0 +1,14 @@
+@startuml
+[*] --> Loading : Вход на дашборд
+Loading --> DashboardActive : Загрузка метрик (GET /kpi)
+Loading --> ErrorState : Ошибка сети (5xx / Timeout)
+ErrorState --> Loading : Клик "Повторить"
+
+state DashboardActive {
+    [*] --> Idle
+    Idle --> NavigateToCreate : Клик "Создать груз"
+    Idle --> NavigateToLoad : Клик по событию в ленте
+    Idle --> Refreshing : Pull-to-refresh или фоновый поллинг
+    Refreshing --> Idle : Обновление данных KPI
+}
+@enduml

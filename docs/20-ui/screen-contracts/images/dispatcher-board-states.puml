@@ -1,0 +1,16 @@
+@startuml
+[*] --> MapInitialized : Загрузка карты и списка
+
+state MapInitialized {
+    [*] --> TrackingActive
+    
+    TrackingActive --> Interpolating : WS Push (Новая GPS точка)
+    Interpolating --> TrackingActive : Плавный сдвиг маркера
+    
+    TrackingActive --> AlertReceived : WS Push (Поломка / Срыв сроков)
+    AlertReceived --> AlertHighlighted : Карточка краснеет, маркер пульсирует
+    
+    AlertHighlighted --> FocusMachine : Клик диспетчером по алерту
+    FocusMachine --> OpenDrawer : Центрирование карты + Открытие панели
+}
+@enduml

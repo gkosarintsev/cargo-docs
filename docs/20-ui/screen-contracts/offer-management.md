@@ -7,28 +7,7 @@
 
 ## Диаграмма состояний интерфейса
 
-```mermaid
-sequenceDiagram
-    participant U as Грузовладелец (UI)
-    participant C as Перевозчик (UI)
-    participant API as Backend API
-    participant WS as WebSocket Hub
-    
-    U->>API: Открыть карточку груза (GET /loads/1/offers)
-    API-->>U: Список из 2-х офферов (Status: PENDING)
-    
-    U->>U: Клик "Встречное предложение"
-    U->>API: POST /offers/1/counter {price: 90000}
-    API-->>U: 200 OK (Status: COUNTERED)
-    API-->>WS: Broadcast OfferUpdated to Carrier
-    WS-->>C: Push Notification & UI Update
-    
-    C->>API: POST /offers/1/accept (Согласен на 90k)
-    API-->>C: 200 OK (Status: ACCEPTED, Load: BOOKED)
-    API-->>WS: Broadcast LoadBooked to Shipper
-    WS-->>U: Переводит карточку в "Груз забронирован"
-    U->>U: Блокировка других офферов (Disabled)
-```
+![Секвенс-диаграмма управления откликами](images/offer-management-sequence.svg)
 
 ## Детальные поведенческие контракты
 - **Встречное предложение**: Клик открывает Inline-инпут или модальное окно. После отправки ставка в карточке меняется, статус переходит в `Ожидает ответа перевозчика` (желтый бейдж).

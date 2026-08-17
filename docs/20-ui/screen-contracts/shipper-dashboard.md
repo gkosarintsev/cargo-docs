@@ -11,22 +11,7 @@
 
 ## Диаграмма состояний интерфейса
 
-```mermaid
-stateDiagram-v2
-    [*] --> Loading: Вход на дашборд
-    Loading --> DashboardActive: Загрузка метрик (GET /kpi)
-    Loading --> ErrorState: Ошибка сети (5xx / Timeout)
-    
-    ErrorState --> Loading: Клик "Повторить"
-    
-    state DashboardActive {
-        [*] --> Idle
-        Idle --> NavigateToCreate: Клик "Создать груз"
-        Idle --> NavigateToLoad: Клик по событию в ленте
-        Idle --> Refreshing: Pull-to-refresh или фоновый поллинг (каждые 30 сек)
-        Refreshing --> Idle: Обновление данных KPI
-    }
-```
+![Диаграмма состояний дашборда](images/shipper-dashboard-states.svg)
 
 ## Детальные поведенческие контракты
 
