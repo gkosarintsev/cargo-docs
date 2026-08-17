@@ -1,0 +1,117 @@
+asyncapi: '2.6.0'
+info:
+  title: Шина событий логистической платформы
+  version: 1.0.0
+  description: Спецификация брокера сообщений для внутренних и внешних топиков Kafka
+servers:
+  production:
+    url: kafka.prod.example.com:9092
+    protocol: kafka
+  staging:
+    url: kafka.staging.example.com:9092
+    protocol: kafka
+channels:
+  marketplace.loads.v1:
+    publish:
+      message:
+        $ref: '#/components/messages/LoadEvent'
+  marketplace.offers.v1:
+    publish:
+      message:
+        $ref: '#/components/messages/OfferEvent'
+  transport.orders.v1:
+    publish:
+      message:
+        $ref: '#/components/messages/OrderEvent'
+  transport.shipments.v1:
+    publish:
+      message:
+        $ref: '#/components/messages/ShipmentEvent'
+  telemetry.gps.v1:
+    publish:
+      message:
+        $ref: '#/components/messages/GpsEvent'
+  documents.edo.v1:
+    publish:
+      message:
+        $ref: '#/components/messages/DocumentEvent'
+  billing.invoices.v1:
+    publish:
+      message:
+        $ref: '#/components/messages/InvoiceEvent'
+components:
+  messages:
+    LoadEvent:
+      payload:
+        type: object
+        properties:
+          event_id: { type: string, format: uuid }
+          aggregate_id: { type: string }
+          timestamp: { type: string, format: date-time }
+          producer: { type: string }
+          trace_id: { type: string }
+          payload: { type: object }
+    OfferEvent:
+      payload:
+        type: object
+        properties:
+          event_id: { type: string, format: uuid }
+          aggregate_id: { type: string }
+          timestamp: { type: string, format: date-time }
+          producer: { type: string }
+          trace_id: { type: string }
+          payload: { type: object }
+    OrderEvent:
+      payload:
+        type: object
+        properties:
+          event_id: { type: string, format: uuid }
+          aggregate_id: { type: string }
+          timestamp: { type: string, format: date-time }
+          producer: { type: string }
+          trace_id: { type: string }
+          payload: { type: object }
+    ShipmentEvent:
+      payload:
+        type: object
+        properties:
+          event_id: { type: string, format: uuid }
+          aggregate_id: { type: string }
+          timestamp: { type: string, format: date-time }
+          producer: { type: string }
+          trace_id: { type: string }
+          payload: { type: object }
+    GpsEvent:
+      payload:
+        type: object
+        properties:
+          event_id: { type: string, format: uuid }
+          aggregate_id: { type: string }
+          timestamp: { type: string, format: date-time }
+          producer: { type: string }
+          trace_id: { type: string }
+          payload: { type: object }
+    DocumentEvent:
+      payload:
+        type: object
+        properties:
+          event_id: { type: string, format: uuid }
+          aggregate_id: { type: string }
+          timestamp: { type: string, format: date-time }
+          producer: { type: string }
+          trace_id: { type: string }
+          payload: { type: object }
+    InvoiceEvent:
+      payload:
+        type: object
+        properties:
+          event_id: { type: string, format: uuid }
+          aggregate_id: { type: string }
+          timestamp: { type: string, format: date-time }
+          producer: { type: string }
+          trace_id: { type: string }
+          payload: { type: object }
+  bindings:
+    kafka:
+      key:
+        type: string

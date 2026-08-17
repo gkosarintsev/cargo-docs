@@ -1,0 +1,40 @@
+openapi: 3.1.0
+info:
+  title: Телематика и координаты
+  version: 1.0.0
+  description: Телематика и координаты
+paths:
+  /api/v1/telemetry/positions:
+    post:
+      summary: прием GPS-точек
+      responses:
+        '200':
+          description: OK
+  /api/v1/shipments/{id}/tracking/current:
+    get:
+      summary: текущая геопозиция
+      responses:
+        '200':
+          description: OK
+  /api/v1/shipments/{id}/tracking/track:
+    get:
+      summary: исторический трек
+      responses:
+        '200':
+          description: OK
+  /api/v1/public/tracking/{share_token}:
+    get:
+      summary: публичный трекинг
+      responses:
+        '200':
+          description: OK
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key

@@ -1,0 +1,122 @@
+openapi: 3.1.0
+info:
+  title: Webhooks API
+  version: 1.0.0
+  description: Спецификация исходящих вебхуков и управления подписками
+paths:
+  /api/v1/webhooks/subscriptions:
+    post:
+      summary: регистрация нового вебхука
+      responses:
+        '200':
+          description: OK
+    get:
+      summary: список активных подписок
+      responses:
+        '200':
+          description: OK
+  /api/v1/webhooks/subscriptions/{id}:
+    delete:
+      summary: удаление подписки
+      responses:
+        '200':
+          description: OK
+  /api/v1/webhooks/subscriptions/{id}/test:
+    post:
+      summary: отправка тестового пинг-события
+      responses:
+        '200':
+          description: OK
+  /api/v1/webhooks/deliveries:
+    get:
+      summary: журнал попыток доставки
+      responses:
+        '200':
+          description: OK
+webhooks:
+  load.status_changed:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                event_type: { type: string, example: "load.status_changed" }
+                load_id: { type: string }
+                status: { type: string }
+      responses:
+        '200':
+          description: OK
+  offer.received:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                event_type: { type: string, example: "offer.received" }
+                offer_id: { type: string }
+      responses:
+        '200':
+          description: OK
+  order.created:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                event_type: { type: string, example: "order.created" }
+                order_id: { type: string }
+      responses:
+        '200':
+          description: OK
+  shipment.status_updated:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                event_type: { type: string, example: "shipment.status_updated" }
+                shipment_id: { type: string }
+      responses:
+        '200':
+          description: OK
+  shipment.eta_updated:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                event_type: { type: string, example: "shipment.eta_updated" }
+                shipment_id: { type: string }
+      responses:
+        '200':
+          description: OK
+  document.signed:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                event_type: { type: string, example: "document.signed" }
+                document_id: { type: string }
+      responses:
+        '200':
+          description: OK
+components:
+  securitySchemes:
+    WebhookSignature:
+      type: apiKey
+      in: header
+      name: X-Cargo-Signature
+      description: HMAC-SHA256 signature

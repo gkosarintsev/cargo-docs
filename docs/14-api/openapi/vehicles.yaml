@@ -1,0 +1,55 @@
+openapi: 3.1.0
+info:
+  title: Автопарк и водители
+  version: 1.0.0
+  description: Автопарк и водители
+paths:
+  /api/v1/fleet/vehicles:
+    get:
+      summary: управление тягачами
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: управление тягачами
+      responses:
+        '200':
+          description: OK
+  /api/v1/fleet/vehicles/{id}:
+    get:
+      summary: управление тягачами
+      responses:
+        '200':
+          description: OK
+  /api/v1/fleet/trailers:
+    get:
+      summary: управление полуприцепами
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: управление полуприцепами
+      responses:
+        '200':
+          description: OK
+  /api/v1/fleet/drivers:
+    get:
+      summary: управление водителями
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: управление водителями
+      responses:
+        '200':
+          description: OK
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
