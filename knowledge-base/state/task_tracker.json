@@ -1,21 +1,28 @@
 {
-  "active_plan": "01-documentation-enhancement.md",
-  "created_at": "2026-11-09T13:22:00Z",
-  "updated_at": "2026-11-09T13:29:00Z",
+  "active_plan": "02-ui-screen-contracts-expansion.md",
+  "created_at": "2026-11-09T14:27:00Z",
+  "updated_at": "2026-11-09T14:45:00Z",
   "status": "completed",
+  "epics": [
+    { "id": "EPIC-01", "name": "Модуль Грузовладельца (Shipper Experience)", "status": "completed" },
+    { "id": "EPIC-02", "name": "Модуль Перевозчика и Диспетчера (Carrier & Fleet Management)", "status": "completed" },
+    { "id": "EPIC-03", "name": "Мобильный интерфейс Водителя (Driver Mobile App)", "status": "completed" },
+    { "id": "EPIC-04", "name": "Панель Администратора, СБ и Безопасности (Trust & Safety Console)", "status": "completed" },
+    { "id": "EPIC-05", "name": "Складской терминал и управление пандусами (Warehouse Gate)", "status": "completed" },
+    { "id": "EPIC-06", "name": "Интеграция в интерактивный веб-портал CargoDocs", "status": "completed" }
+  ],
   "tasks": [
-    { "id": "TASK-001", "name": "Protobuf Контракты (gRPC) в 14-api/proto", "status": "done" },
-    { "id": "TASK-002", "name": "Интеграция верификации (KYC) в 16-integrations/identity-verification", "status": "done" },
-    { "id": "TASK-003", "name": "Интеграция внешних бирж в 16-integrations/external-marketplaces", "status": "done" },
-    { "id": "TASK-004", "name": "Физический DDL & Схемы PostgreSQL в 15-data и 04-domain", "status": "done" },
-    { "id": "TASK-005", "name": "Стратегия миграций и Zero-Downtime в 15-data/migrations", "status": "done" },
-    { "id": "TASK-006", "name": "Детализация AsyncAPI контрактов в 14-api/asyncapi/events.yaml", "status": "done" },
-    { "id": "TASK-007", "name": "Схемы CloudEvents и стандарты сериализации", "status": "done" },
-    { "id": "TASK-008", "name": "PlantUML диаграммы состояний (state-machines)", "status": "done" },
-    { "id": "TASK-009", "name": "C4 Component диаграммы Billing и Fleet", "status": "done" },
-    { "id": "TASK-010", "name": "Sequence диаграммы инцидентов и штрафов", "status": "done" },
-    { "id": "TASK-011", "name": "Runbooks аварийных ситуаций (Telemetry Lag, Redis Failover)", "status": "done" },
-    { "id": "TASK-012", "name": "SLO/SLI спецификации с PromQL метриками", "status": "done" },
-    { "id": "TASK-013", "name": "Интеграция артефактов в CargoDocs UI", "status": "done" }
+    { "id": "TASK-020", "name": "Детализация карточки груза и торга", "status": "done" },
+    { "id": "TASK-021", "name": "Экран отслеживания активных доставок", "status": "done" },
+    { "id": "TASK-022", "name": "Экран ЭДО, закрывающих документов и претензий", "status": "done" },
+    { "id": "TASK-024", "name": "Назначение тягача, полуприцепа и водителя", "status": "done" },
+    { "id": "TASK-025", "name": "Управление автопарком и ТО", "status": "done" },
+    { "id": "TASK-027", "name": "Финансовый кабинет перевозчика и Факторинг", "status": "done" },
+    { "id": "TASK-028", "name": "Главный экран активного рейса водителя", "status": "done" },
+    { "id": "TASK-029", "name": "Сдача груза, PoD и фиксация инцидентов", "status": "done" },
+    { "id": "TASK-030", "name": "Консоль проверки организаций и СБ (KYC)", "status": "done" },
+    { "id": "TASK-031", "name": "Панель разрешения споров и арбитража", "status": "done" },
+    { "id": "TASK-032", "name": "Электронная очередь и управление пандусами", "status": "done" },
+    { "id": "TASK-033", "name": "Интеграция в веб-портал CargoDocs", "status": "done" }
   ]
 }

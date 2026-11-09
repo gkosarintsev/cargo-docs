@@ -16,3 +16,18 @@ You operate in this repository as an autonomous engineer. Maintain project conte
 ## 3. Execution Standard
 - Keep all documentation clear, concise, and machine-readable.
 - Do not ask for user confirmation for internal file updates unless a requirements conflict arises.
+
+
+# Проект
+
+Этот проект - документация для сервиса логистики. Находится в директории docs
+
+## Схемы и диаграммы документации (Diagrams-as-Code)
+Схемы и диаграммы должны создаваться в md-документах как вставки Mermaid, например:
+```mermaid
+graph LR
+    A[Platform Documentation] --> B[01 - Architecture]
+```
+Или в отдельных файлах в формате `.puml` (PlantUML).
+
+В GitHub Actions настроен workflow (`.github/workflows/generate-diagrams.yml`), который автоматически конвертирует все `.puml` файлы в `.svg`, поэтому в документации ссылки должны указывать именно на `.svg` файлы.
