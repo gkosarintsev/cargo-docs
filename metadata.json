@@ -1,0 +1,8 @@
+{
+  "name": "CargoDocs Logistics Platform",
+  "description": "Interactive technical documentation, architectural blueprints, C4 models, domain design, and system contracts for the Cargo Logistics Marketplace Platform.",
+  "permissions": [],
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
