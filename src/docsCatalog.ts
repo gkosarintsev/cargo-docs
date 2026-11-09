@@ -1,5 +1,5 @@
-// Import all markdown documents, SVGs, and YAML specs as raw text strings
-const rawDocs = import.meta.glob('/docs/**/*.{md,yaml,yml,svg,puml}', {
+// Import all markdown documents, SVGs, and YAML/Proto specs as raw text strings
+const rawDocs = import.meta.glob('/docs/**/*.{md,yaml,yml,svg,puml,proto}', {
   query: '?raw',
   import: 'default',
   eager: true,
@@ -19,7 +19,7 @@ export interface DocItem {
   path: string;
   title: string;
   category: string;
-  type: 'markdown' | 'svg' | 'openapi' | 'puml';
+  type: 'markdown' | 'svg' | 'openapi' | 'puml' | 'proto';
   content: string;
 }
 
@@ -39,9 +39,9 @@ export const CATEGORIES_META: Record<string, { title: string; icon: string; desc
   '11': { title: '11. Документооборот', icon: 'FileText', desc: 'Электронные документы (ЭТрН), подписи и архив' },
   '12': { title: '12. Финансы', icon: 'DollarSign', desc: 'Фрахтовые ставки, биллинг, факторинг и гарантии' },
   '13': { title: '13. Коммуникация', icon: 'MessageSquare', desc: 'Мессенджер, WebSocket, push и SMS уведомления' },
-  '14': { title: '14. API & Контракты', icon: 'Code', desc: 'OpenAPI спеки (9 сервисов), AsyncAPI и стандарты' },
+  '14': { title: '14. API & Контракты', icon: 'Code', desc: 'OpenAPI спеки (9 сервисов), AsyncAPI, gRPC Protobuf' },
   '15': { title: '15. Архитектура данных', icon: 'Database', desc: 'PostgreSQL, репликация, Outbox, партиционирование' },
-  '16': { title: '16. Интеграции', icon: 'Cpu', desc: 'Интеграции с TMS, ERP, WMS, GPS и телематикой' },
+  '16': { title: '16. Интеграции', icon: 'Cpu', desc: 'Интеграции с TMS, ERP, WMS, GPS, биржи и верификация' },
   '17': { title: '17. Безопасность', icon: 'Lock', desc: 'Tenant isolation, аудит, threat model, шифрование' },
   '18': { title: '18. Наблюдаемость', icon: 'Activity', desc: 'Prometheus, Grafana, OpenTelemetry, SLO/SLA' },
   '19': { title: '19. Эксплуатация & SRE', icon: 'Server', desc: 'CI/CD, runbooks для сбоев, бэкапы, DR план' },
@@ -50,7 +50,7 @@ export const CATEGORIES_META: Record<string, { title: string; icon: string; desc
 };
 
 function formatDocTitle(filename: string): string {
-  const clean = filename.replace(/\.(md|yaml|yml|svg|puml)$/, '');
+  const clean = filename.replace(/\.(md|yaml|yml|svg|puml|proto)$/, '');
   if (clean === 'README') return 'Обзор документации (README)';
   if (clean === 'glossary') return 'Глоссарий терминов';
   
@@ -93,6 +93,7 @@ export function getAllDocs(): DocItem[] {
     if (filename.endsWith('.svg')) type = 'svg';
     else if (filename.endsWith('.yaml') || filename.endsWith('.yml')) type = 'openapi';
     else if (filename.endsWith('.puml')) type = 'puml';
+    else if (filename.endsWith('.proto')) type = 'proto';
 
     // Skip raw puml if svg counterpart exists to keep UI uncluttered
     if (type === 'puml') {

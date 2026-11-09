@@ -1,117 +1,223 @@
 asyncapi: '2.6.0'
 info:
-  title: Шина событий логистической платформы
-  version: 1.0.0
-  description: Спецификация брокера сообщений для внутренних и внешних топиков Kafka
+  title: Шина событий логистической платформы (Event-Driven Backbone)
+  version: 2.0.0
+  description: Полная спецификация Apache Kafka топиков и CloudEvents v1.0 payload для асинхронного взаимодействия микросервисов и интеграций.
 servers:
   production:
-    url: kafka.prod.example.com:9092
+    url: kafka-cluster.prod.cargo-platform.internal:9092
     protocol: kafka
+    description: Основной Kafka кластер в production окружении
   staging:
-    url: kafka.staging.example.com:9092
+    url: kafka-cluster.staging.cargo-platform.internal:9092
     protocol: kafka
+    description: Тестовый Kafka кластер
+
 channels:
   marketplace.loads.v1:
+    description: События публикации, изменения и снятия с торгов грузов
     publish:
       message:
-        $ref: '#/components/messages/LoadEvent'
+        oneOf:
+          - $ref: '#/components/messages/LoadPublishedEvent'
+          - $ref: '#/components/messages/LoadCancelledEvent'
+
   marketplace.offers.v1:
+    description: События подачи предложений, встречных ставок и акцепта
     publish:
       message:
-        $ref: '#/components/messages/OfferEvent'
+        oneOf:
+          - $ref: '#/components/messages/OfferSubmittedEvent'
+          - $ref: '#/components/messages/OfferAcceptedEvent'
+
   transport.orders.v1:
+    description: Жизненный цикл исполнения транспортных заказов
     publish:
       message:
-        $ref: '#/components/messages/OrderEvent'
-  transport.shipments.v1:
+        oneOf:
+          - $ref: '#/components/messages/OrderAssignedEvent'
+          - $ref: '#/components/messages/OrderDeliveredEvent'
+
+  telemetry.geofence.v1:
+    description: Детекция событий входа/выхода из геозон складов погрузки и выгрузки
     publish:
       message:
-        $ref: '#/components/messages/ShipmentEvent'
-  telemetry.gps.v1:
+        $ref: '#/components/messages/GeofenceTransitionEvent'
+
+  telemetry.alerts.v1:
+    description: Экстренные алерты телеметрии (сходы с маршрута, длительные простои, поломки)
     publish:
       message:
-        $ref: '#/components/messages/GpsEvent'
-  documents.edo.v1:
+        $ref: '#/components/messages/TelemetryAlertEvent'
+
+  documents.pod.v1:
+    description: Загрузка и подтверждение Proof of Delivery (PoD) и актов
     publish:
       message:
-        $ref: '#/components/messages/DocumentEvent'
-  billing.invoices.v1:
+        $ref: '#/components/messages/PoDUploadedEvent'
+
+  billing.settlement.v1:
+    description: Финансовые взаиморасчеты, выплаты перевозчикам и факторинг
     publish:
       message:
-        $ref: '#/components/messages/InvoiceEvent'
+        $ref: '#/components/messages/InvoiceSettledEvent'
+
 components:
   messages:
-    LoadEvent:
+    # 1. Груз опубликован
+    LoadPublishedEvent:
+      name: LoadPublished
+      title: Груз опубликован на бирже
+      payload:
+        type: object
+        required: [specversion, id, source, type, time, datacontenttype, data]
+        properties:
+          specversion: { type: string, enum: ['1.0'] }
+          id: { type: string, format: uuid }
+          source: { type: string, example: '/services/marketplace/loads' }
+          type: { type: string, enum: ['ru.cargo.marketplace.load.published'] }
+          time: { type: string, format: date-time }
+          datacontenttype: { type: string, enum: ['application/json'] }
+          traceparent: { type: string, description: 'W3C Distributed Tracing Header' }
+          data:
+            type: object
+            required: [load_id, tenant_id, cargo_title, weight_kg, volume_m3, body_type, origin, destination, target_rate_cents]
+            properties:
+              load_id: { type: string, format: uuid }
+              tenant_id: { type: string, format: uuid }
+              cargo_title: { type: string }
+              weight_kg: { type: integer, minimum: 100 }
+              volume_m3: { type: number }
+              body_type: { type: string, enum: [TENT_STANDARD, REFRIGERATOR, ISOTHERMAL, FLATBED_OPEN, CONTAINER_CARRIER] }
+              origin:
+                type: object
+                properties:
+                  city: { type: string }
+                  lat: { type: number }
+                  lng: { type: number }
+                  planned_date: { type: string, format: date-time }
+              destination:
+                type: object
+                properties:
+                  city: { type: string }
+                  lat: { type: number }
+                  lng: { type: number }
+                  planned_date: { type: string, format: date-time }
+              target_rate_cents: { type: integer }
+              currency: { type: string, example: 'RUB' }
+
+    # 2. Груз отменен
+    LoadCancelledEvent:
+      name: LoadCancelled
+      title: Груз отозван грузовладельцем
       payload:
         type: object
         properties:
-          event_id: { type: string, format: uuid }
-          aggregate_id: { type: string }
-          timestamp: { type: string, format: date-time }
-          producer: { type: string }
-          trace_id: { type: string }
-          payload: { type: object }
-    OfferEvent:
+          load_id: { type: string, format: uuid }
+          reason: { type: string }
+          cancelled_at: { type: string, format: date-time }
+
+    # 3. Предложение подано
+    OfferSubmittedEvent:
+      name: OfferSubmitted
+      title: Поступило предложение от перевозчика
+      payload:
+        type: object
+        required: [offer_id, load_id, carrier_org_id, proposed_rate_cents]
+        properties:
+          offer_id: { type: string, format: uuid }
+          load_id: { type: string, format: uuid }
+          carrier_org_id: { type: string, format: uuid }
+          proposed_rate_cents: { type: integer }
+          vehicle_id: { type: string, format: uuid }
+          driver_id: { type: string, format: uuid }
+
+    # 4. Предложение принято
+    OfferAcceptedEvent:
+      name: OfferAccepted
+      title: Оффер акцептован, формируется заказ
       payload:
         type: object
         properties:
-          event_id: { type: string, format: uuid }
-          aggregate_id: { type: string }
-          timestamp: { type: string, format: date-time }
-          producer: { type: string }
-          trace_id: { type: string }
-          payload: { type: object }
-    OrderEvent:
+          offer_id: { type: string, format: uuid }
+          load_id: { type: string, format: uuid }
+          agreed_rate_cents: { type: integer }
+          accepted_by_user_id: { type: string, format: uuid }
+
+    # 5. Заказ назначен на автопарк
+    OrderAssignedEvent:
+      name: OrderAssigned
+      title: Заказ укомплектован тягачом и водителем
       payload:
         type: object
         properties:
-          event_id: { type: string, format: uuid }
-          aggregate_id: { type: string }
-          timestamp: { type: string, format: date-time }
-          producer: { type: string }
-          trace_id: { type: string }
-          payload: { type: object }
-    ShipmentEvent:
+          order_id: { type: string, format: uuid }
+          vehicle_id: { type: string, format: uuid }
+          trailer_id: { type: string, format: uuid }
+          driver_id: { type: string, format: uuid }
+          assigned_at: { type: string, format: date-time }
+
+    # 6. Заказ доставлен
+    OrderDeliveredEvent:
+      name: OrderDelivered
+      title: Доставка груза успешно завершена
       payload:
         type: object
         properties:
-          event_id: { type: string, format: uuid }
-          aggregate_id: { type: string }
-          timestamp: { type: string, format: date-time }
-          producer: { type: string }
-          trace_id: { type: string }
-          payload: { type: object }
-    GpsEvent:
+          order_id: { type: string, format: uuid }
+          delivered_at: { type: string, format: date-time }
+          recipient_name: { type: string }
+
+    # 7. Событие геозоны
+    GeofenceTransitionEvent:
+      name: GeofenceTransition
+      title: Пересечение границы геозоны склада
       payload:
         type: object
         properties:
-          event_id: { type: string, format: uuid }
-          aggregate_id: { type: string }
+          vehicle_id: { type: string, format: uuid }
+          order_id: { type: string, format: uuid }
+          geofence_id: { type: string }
+          geofence_name: { type: string }
+          transition_type: { type: string, enum: [ENTER, EXIT] }
           timestamp: { type: string, format: date-time }
-          producer: { type: string }
-          trace_id: { type: string }
-          payload: { type: object }
-    DocumentEvent:
+
+    # 8. Алерт телеметрии
+    TelemetryAlertEvent:
+      name: TelemetryAlert
+      title: Аварийное отклонение телеметрии
       payload:
         type: object
         properties:
-          event_id: { type: string, format: uuid }
-          aggregate_id: { type: string }
-          timestamp: { type: string, format: date-time }
-          producer: { type: string }
-          trace_id: { type: string }
-          payload: { type: object }
-    InvoiceEvent:
+          order_id: { type: string, format: uuid }
+          vehicle_id: { type: string, format: uuid }
+          alert_type: { type: string, enum: [UNPLANNED_STOP_OVER_2H, ROUTE_DEVIATION, SPEED_LIMIT_EXCEEDED, REEFER_TEMP_VIOLATION, SOS_BUTTON] }
+          severity: { type: string, enum: [WARNING, CRITICAL] }
+          details: { type: string }
+          current_lat: { type: number }
+          current_lng: { type: number }
+
+    # 9. PoD загружен
+    PoDUploadedEvent:
+      name: PoDUploaded
+      title: Загружено подтверждение доставки
       payload:
         type: object
         properties:
-          event_id: { type: string, format: uuid }
-          aggregate_id: { type: string }
-          timestamp: { type: string, format: date-time }
-          producer: { type: string }
-          trace_id: { type: string }
-          payload: { type: object }
-  bindings:
-    kafka:
-      key:
-        type: string
+          order_id: { type: string, format: uuid }
+          document_id: { type: string, format: uuid }
+          file_url: { type: string }
+          is_clean_pod: { type: boolean, description: 'Без замечаний и актов расхождений' }
+
+    # 10. Взаиморасчет исполнен
+    InvoiceSettledEvent:
+      name: InvoiceSettled
+      title: Выплата средств перевозчику проведена
+      payload:
+        type: object
+        properties:
+          invoice_id: { type: string, format: uuid }
+          order_id: { type: string, format: uuid }
+          amount_cents: { type: integer }
+          payment_rail: { type: string, enum: [BANK_TRANSFER_RUB, FACTORING_EARLY_PAY, ESCROW_RELEASE] }
+          settled_at: { type: string, format: date-time }

@@ -1,0 +1,94 @@
+syntax = "proto3";
+
+package cargo.matching.v1;
+
+option go_package = "cargo/api/matching/v1;matchingv1";
+option java_multiple_files = true;
+option java_package = "com.cargo.api.matching.v1";
+
+import "google/protobuf/timestamp.proto";
+
+// Сервис интеллектуального подбора и скоринга совместимости грузов и свободного транспорта.
+service MatchingEngineService {
+  // Поиск подходящих транспортных средств под опубликованный груз
+  rpc FindMatchingVehicles(FindMatchingVehiclesRequest) returns (MatchingVehiclesResponse);
+
+  // Поиск подходящих грузов для свободного тягача / автопарка
+  rpc FindMatchingLoads(FindMatchingLoadsRequest) returns (MatchingLoadsResponse);
+
+  // Расчет детального скоринга совместимости конкретной пары (Груз <-> ТС)
+  rpc ScoreMatch(ScoreMatchRequest) returns (ScoreMatchResponse);
+}
+
+message FindMatchingVehiclesRequest {
+  string load_id = 1;
+  double origin_lat = 2;
+  double origin_lng = 3;
+  double destination_lat = 4;
+  double destination_lng = 5;
+  double search_radius_km = 6;
+  string body_type = 7;                 // TENT, REFRIGERATOR, ISOTHERMAL, FLATBED
+  float required_capacity_tons = 8;
+  float required_volume_m3 = 9;
+  google.protobuf.Timestamp ready_date = 10;
+  int32 limit = 11;
+}
+
+message MatchingVehicleItem {
+  string vehicle_id = 1;
+  string carrier_org_id = 2;
+  string carrier_name = 3;
+  float carrier_rating = 4;
+  double current_lat = 5;
+  double current_lng = 6;
+  double distance_to_pickup_km = 7;
+  int32 match_score_percent = 8;        // Скоринг совместимости (0..100%)
+  repeated string match_reasons = 9;    // "Идеальное совпадение по типу кузова", "Рядом с точкой погрузки"
+  int64 estimated_rate_cents = 10;
+}
+
+message MatchingVehiclesResponse {
+  string load_id = 1;
+  repeated MatchingVehicleItem vehicles = 2;
+  int64 computation_duration_ms = 3;
+}
+
+message FindMatchingLoadsRequest {
+  string vehicle_id = 1;
+  double vehicle_lat = 2;
+  double vehicle_lng = 3;
+  double search_radius_km = 4;
+  string preferred_destination_region = 5;
+  int32 limit = 6;
+}
+
+message MatchingLoadItem {
+  string load_id = 1;
+  string cargo_name = 2;
+  string route_from = 3;
+  string route_to = 4;
+  double distance_empty_run_km = 5;     // Расстояние порожнего пробега до погрузки
+  int64 target_price_cents = 6;
+  int32 match_score_percent = 7;
+  google.protobuf.Timestamp pickup_deadline = 8;
+}
+
+message MatchingLoadsResponse {
+  string vehicle_id = 1;
+  repeated MatchingLoadItem loads = 2;
+  int64 computation_duration_ms = 3;
+}
+
+message ScoreMatchRequest {
+  string load_id = 1;
+  string vehicle_id = 2;
+}
+
+message ScoreMatchResponse {
+  int32 total_score = 1;
+  int32 route_efficiency_score = 2;
+  int32 capacity_utilization_score = 3;
+  int32 carrier_reliability_score = 4;
+  bool is_hard_constraint_violated = 5;
+  repeated string violation_warnings = 6;
+}

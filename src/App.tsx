@@ -388,6 +388,11 @@ export default function App() {
                                     API
                                   </span>
                                 )}
+                                {doc.type === 'proto' && (
+                                  <span className="text-[9px] px-1 rounded bg-amber-950 text-amber-300 border border-amber-800 shrink-0 font-mono">
+                                    gRPC
+                                  </span>
+                                )}
                               </button>
                             );
                           })}
@@ -431,6 +436,18 @@ export default function App() {
                       className="max-w-full overflow-auto bg-white/95 rounded-xl p-4 shadow-xl text-slate-900 inline-block"
                       dangerouslySetInnerHTML={{ __html: currentDoc.content }}
                     />
+                  </div>
+                ) : currentDoc?.type === 'proto' || currentDoc?.type === 'puml' ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between pb-3 border-b border-slate-800 text-xs text-slate-400">
+                      <span className="font-mono text-amber-400 font-semibold">
+                        {currentDoc.type === 'proto' ? 'Protocol Buffers v3 Contract Specification' : 'PlantUML Diagram Source Specification'}
+                      </span>
+                      <span className="text-[11px] text-slate-500 font-mono">{currentDoc.path}</span>
+                    </div>
+                    <pre className="p-5 rounded-xl bg-slate-900/90 border border-slate-800 text-xs font-mono text-emerald-400 overflow-x-auto leading-relaxed shadow-inner">
+                      <code>{currentDoc.content}</code>
+                    </pre>
                   </div>
                 ) : (
                   <MarkdownRenderer

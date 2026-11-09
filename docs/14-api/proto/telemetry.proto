@@ -1,0 +1,100 @@
+syntax = "proto3";
+
+package cargo.telemetry.v1;
+
+option go_package = "cargo/api/telemetry/v1;telemetryv1";
+option java_multiple_files = true;
+option java_package = "com.cargo.api.telemetry.v1";
+
+import "google/protobuf/timestamp.proto";
+
+// Сервис приёма и стриминга высоконагруженной GPS телеметрии автопарка.
+service TelemetryService {
+  // Потоковая передача телеметрических координат с бортовых устройств (Wialon, Teltonika, EGTS).
+  rpc StreamTelemetry(stream TelemetryPing) returns (StreamTelemetryResponse);
+
+  // Пакетная отправка точек телеметрии от внешних телематических интеграторов (REST / HTTP webhook bridge).
+  rpc IngestBatch(IngestBatchRequest) returns (IngestBatchResponse);
+
+  // Получение актуального местоположения транспортного средства и текущего статуса геозон.
+  rpc GetLatestPosition(GetLatestPositionRequest) returns (GetLatestPositionResponse);
+
+  // Серверный стриминг перемещения транспортных средств в реальном времени для Диспетчерского пульта.
+  rpc SubscribeVehiclePositions(SubscribePositionsRequest) returns (stream VehiclePositionUpdate);
+}
+
+// Пакет телеметрической точки от трекера
+message TelemetryPing {
+  string device_id = 1;                 // Уникальный идентификатор трекера (IMEI)
+  string vehicle_id = 2;                // ID транспортного средства в платформе
+  google.protobuf.Timestamp timestamp = 3; // Временная метка фиксации координаты GPS/ГЛОНАСС
+
+  double latitude = 4;                  // Широта (WGS84, -90..90)
+  double longitude = 5;                 // Долгота (WGS84, -180..180)
+  double altitude_meters = 6;           // Высота над уровнем моря
+  float speed_kmh = 7;                  // Скорость движения в км/ч
+  float course_degrees = 8;             // Курс движения (0..359.9)
+
+  int32 satellites_count = 9;           // Количество задействованных спутников
+  float hdop = 10;                      // Горизонтальный фактор точности
+
+  TelemetrySensorData sensors = 11;     // Данные дополнительных телематических датчиков
+  map<string, string> metadata = 12;    // Произвольные служебные атрибуты
+}
+
+// Показания датчиков
+message TelemetrySensorData {
+  float fuel_level_percent = 1;         // Уровень топлива в основном баке (0..100%)
+  float fuel_volume_liters = 2;         // Объём топлива в литрах
+  float coolant_temperature_c = 3;      // Температура охлаждающей жидкости двигателя
+  float cargo_temperature_c = 4;        // Температура в термоизолированном кузове / рефрижераторе
+  bool is_engine_running = 5;           // Статус зажигания (ДВС включен)
+  bool is_cargo_door_opened = 6;        // Датчик открытия дверей полуприцепа
+  bool is_sos_button_pressed = 7;       // Сигнал тревожной кнопки SOS
+}
+
+message StreamTelemetryResponse {
+  int64 points_received = 1;
+  int64 points_processed = 2;
+  google.protobuf.Timestamp processed_at = 3;
+}
+
+message IngestBatchRequest {
+  repeated TelemetryPing pings = 1;
+}
+
+message IngestBatchResponse {
+  int32 accepted_count = 1;
+  int32 rejected_count = 2;
+  repeated string error_messages = 3;
+}
+
+message GetLatestPositionRequest {
+  string vehicle_id = 1;
+}
+
+message GetLatestPositionResponse {
+  TelemetryPing last_ping = 1;
+  string current_geofence_id = 2;
+  bool is_moving = 3;
+  int64 stop_duration_seconds = 4;      // Длительность текущей стоянки
+  string geohash = 5;                   // 7-значный геохэш для быстрого индекса
+}
+
+message SubscribePositionsRequest {
+  repeated string vehicle_ids = 1;      // Фильтр по списку ТС (опционально)
+  repeated string active_order_ids = 2; // Фильтр по рейсам активных заказов
+  string geofence_bounding_box = 3;     // GeoJSON / WKT полигон зоны видимости
+}
+
+message VehiclePositionUpdate {
+  string vehicle_id = 1;
+  string order_id = 2;
+  double latitude = 3;
+  double longitude = 4;
+  float speed_kmh = 5;
+  float course_degrees = 6;
+  google.protobuf.Timestamp timestamp = 7;
+  string status = 8;                    // ON_SCHEDULE, DELAYED, STOPPED_UNPLANNED
+  int32 eta_minutes_remaining = 9;
+}

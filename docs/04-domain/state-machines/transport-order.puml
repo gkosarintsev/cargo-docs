@@ -1,0 +1,40 @@
+@startuml
+skinparam state {
+  BackgroundColor<<Initial>> LightSkyBlue
+  BackgroundColor<<Active>> LightGreen
+  BackgroundColor<<Alert>> Salmon
+  BackgroundColor<<Final>> LightGray
+  BorderColor Black
+  FontSize 12
+  FontName "Helvetica"
+}
+
+[*] --> CREATED : Акцепт оффера (Order Created)
+CREATED --> ASSIGNED : Тягач и водитель назначены
+ASSIGNED --> HEADING_TO_PICKUP : Водитель выехал на склад
+HEADING_TO_PICKUP --> AT_PICKUP : Прибытие в геозону погрузки
+AT_PICKUP --> LOADING : Погрузка начата
+LOADING --> IN_TRANSIT : Документы оформлены, выезд со склада
+
+IN_TRANSIT --> AT_DELIVERY : Прибытие в геозону выгрузки
+AT_DELIVERY --> UNLOADING : Выгрузка начата
+UNLOADING --> DELIVERED : PoD подписан без замечаний
+
+IN_TRANSIT --> DISPUTED : Акт расхождений / Инцидент
+DISPUTED --> DELIVERED : Спор урегулирован
+DISPUTED --> CANCELLED : Потеря груза / Страховой случай
+
+ASSIGNED --> CANCELLED : Срыв подачи ТС
+CREATED --> CANCELLED : Отмена до назначения
+
+DELIVERED --> SETTLED : Оплата перечислена перевозчику
+SETTLED --> [*]
+CANCELLED --> [*]
+
+state CREATED <<Initial>>
+state IN_TRANSIT <<Active>>
+state DISPUTED <<Alert>>
+state DELIVERED <<Active>>
+state SETTLED <<Final>>
+state CANCELLED <<Final>>
+@enduml

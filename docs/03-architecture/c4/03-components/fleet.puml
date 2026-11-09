@@ -1,0 +1,32 @@
+@startuml
+!include <C4/C4_Component>
+
+title Component Diagram - Fleet Management Service
+
+Container_Boundary(fleet_service, "Fleet Management Service") {
+    Component(vehicle_ctrl, "VehicleController", "REST API", "Управление реестром тягачей и полуприцепов")
+    Component(driver_ctrl, "DriverController", "REST API", "Учет водителей, проверка прав, режим труда и отдыха (РТО)")
+    Component(allocation_engine, "FleetAllocationEngine", "Domain Service", "Проверка доступности и назначение сцепки (Тягач + Прицеп + Водитель)")
+    Component(maintenance_svc, "MaintenanceService", "Application Service", "Учет пробегов, графики ТО, диагностические карты")
+    Component(fleet_repo, "FleetRepository", "Repository", "Доступ к парку ТС и графикам занятости в PostgreSQL")
+    Component(outbox_pub, "OutboxPublisher", "Infrastructure Service", "Публикация событий парка в Kafka")
+}
+
+Container(api_gw, "API Gateway", "Traefik/Envoy", "Reverse Proxy")
+ContainerDb(primary_db, "Primary OLTP DB", "PostgreSQL", "Database")
+ContainerDb(kafka, "Message Streaming Bus", "Apache Kafka", "Event bus")
+System_Ext(gibdd_ext, "ГИБДД / Гостехнадзор", "Проверка ВУ и регистрации ТС")
+
+Rel(api_gw, vehicle_ctrl, "API вызовы", "HTTPS/JSON")
+Rel(api_gw, driver_ctrl, "API вызовы", "HTTPS/JSON")
+
+Rel(vehicle_ctrl, maintenance_svc, "Контроль ТО", "Method call")
+Rel(driver_ctrl, allocation_engine, "Календарь смен", "Method call")
+Rel(allocation_engine, fleet_repo, "Резерв ТС", "Method call")
+Rel(driver_ctrl, gibdd_ext, "Проверка штрафов и лишений", "HTTPS/REST")
+
+Rel(fleet_repo, primary_db, "SQL запросы", "TCP/SQL")
+Rel(allocation_engine, outbox_pub, "События назначения", "Method call")
+Rel(outbox_pub, kafka, "События автопарка", "Kafka Topic: fleet.events.v1")
+
+@enduml

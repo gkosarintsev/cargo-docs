@@ -1,0 +1,97 @@
+syntax = "proto3";
+
+package cargo.orders.v1;
+
+option go_package = "cargo/api/orders/v1;ordersv1";
+option java_multiple_files = true;
+option java_package = "com.cargo.api.orders.v1";
+
+import "google/protobuf/timestamp.proto";
+
+// Межсервисный gRPC интерфейс управления жизненным циклом транспортных заказов.
+service OrderService {
+  // Создание транспортного заказа на основе акцептованного оффера маркетплейса
+  rpc CreateOrderFromOffer(CreateOrderFromOfferRequest) returns (OrderResponse);
+
+  // Назначение тягача, полуприцепа и водителя на заказ
+  rpc AssignFleet(AssignFleetRequest) returns (OrderResponse);
+
+  // Перевод заказа в статус исполнения (Прибытие на погрузку / Убытие)
+  rpc UpdateExecutionStatus(UpdateExecutionStatusRequest) returns (OrderResponse);
+
+  // Завершение заказа с валидацией Proof of Delivery (PoD)
+  rpc CompleteDelivery(CompleteDeliveryRequest) returns (OrderResponse);
+
+  // Получение агрегированной карточки заказа
+  rpc GetOrder(GetOrderRequest) returns (OrderResponse);
+}
+
+enum OrderStatus {
+  ORDER_STATUS_UNSPECIFIED = 0;
+  ORDER_STATUS_CREATED = 1;
+  ORDER_STATUS_ASSIGNED = 2;
+  ORDER_STATUS_HEADING_TO_PICKUP = 3;
+  ORDER_STATUS_AT_PICKUP = 4;
+  ORDER_STATUS_LOADING = 5;
+  ORDER_STATUS_IN_TRANSIT = 6;
+  ORDER_STATUS_AT_DELIVERY = 7;
+  ORDER_STATUS_UNLOADING = 8;
+  ORDER_STATUS_DELIVERED = 9;
+  ORDER_STATUS_SETTLED = 10;
+  ORDER_STATUS_CANCELLED = 11;
+  ORDER_STATUS_DISPUTED = 12;
+}
+
+message CreateOrderFromOfferRequest {
+  string load_id = 1;
+  string offer_id = 2;
+  string shipper_org_id = 3;
+  string carrier_org_id = 4;
+  int64 agreed_price_cents = 5;
+  string currency = 6;
+  string idempotency_key = 7;
+}
+
+message AssignFleetRequest {
+  string order_id = 1;
+  string vehicle_id = 2;
+  string trailer_id = 3;
+  string driver_id = 4;
+  string assigned_by_user_id = 5;
+}
+
+message UpdateExecutionStatusRequest {
+  string order_id = 1;
+  OrderStatus target_status = 2;
+  string note = 3;
+  double latitude = 4;
+  double longitude = 5;
+  google.protobuf.Timestamp event_time = 6;
+}
+
+message CompleteDeliveryRequest {
+  string order_id = 1;
+  string pod_document_id = 2;
+  repeated string cargo_photo_urls = 3;
+  string recipient_signature_hash = 4;
+  bool is_with_damages = 5;
+  string damage_comment = 6;
+}
+
+message GetOrderRequest {
+  string order_id = 1;
+}
+
+message OrderResponse {
+  string order_id = 1;
+  string order_number = 2;
+  OrderStatus status = 3;
+  string shipper_org_id = 4;
+  string carrier_org_id = 5;
+  string vehicle_id = 6;
+  string driver_id = 7;
+  int64 agreed_price_cents = 8;
+  string currency = 9;
+  google.protobuf.Timestamp created_at = 10;
+  google.protobuf.Timestamp updated_at = 11;
+}

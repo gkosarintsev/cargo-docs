@@ -1,0 +1,34 @@
+@startuml
+!include <C4/C4_Component>
+
+title Component Diagram - Billing, Escrow & Finance Service
+
+Container_Boundary(billing_service, "Billing & Finance Service") {
+    Component(invoice_ctrl, "InvoiceController", "REST API", "Управление счетами, актами и счетами-фактурами")
+    Component(payment_ctrl, "PaymentController", "REST API / Webhook", "Прием подтверждений оплат от банков и СБП")
+    Component(escrow_mgr, "EscrowManager", "Domain Service", "Блокировка и безопасное удержание средств до подтверждения PoD")
+    Component(factoring_svc, "FactoringService", "Application Service", "Интеграция с факторинговыми компаниями (быстрая выплата перевозчику)")
+    Component(ledger_svc, "GeneralLedgerService", "Domain Service", "Двойная запись проводок и балансы лицевых счетов")
+    Component(outbox_pub, "OutboxPublisher", "Infrastructure Service", "Публикация финансовых событий в Kafka")
+    Component(billing_repo, "BillingRepository", "Repository", "Доступ к таблицам счетов и проводок в PostgreSQL")
+}
+
+Container(api_gw, "API Gateway", "Traefik/Envoy", "Reverse Proxy")
+ContainerDb(primary_db, "Primary OLTP DB", "PostgreSQL", "Database")
+ContainerDb(kafka, "Message Streaming Bus", "Apache Kafka", "Event bus")
+System_Ext(bank_gw, "Банковский шлюз / СБП / 1С", "Внешние платёжные провайдеры")
+
+Rel(api_gw, invoice_ctrl, "API вызовы", "HTTPS/JSON")
+Rel(api_gw, payment_ctrl, "API вызовы", "HTTPS/JSON")
+Rel(bank_gw, payment_ctrl, "Вебхуки платежей", "HTTPS/JSON")
+
+Rel(invoice_ctrl, escrow_mgr, "Управление холдами", "Method call")
+Rel(payment_ctrl, ledger_svc, "Фиксация проводок", "Method call")
+Rel(escrow_mgr, factoring_svc, "Одобрение факторинга", "Method call")
+
+Rel(ledger_svc, billing_repo, "Транзакции проводок", "Method call")
+Rel(billing_repo, primary_db, "SQL запросы", "TCP/SQL")
+Rel(ledger_svc, outbox_pub, "Финансовые события", "Method call")
+Rel(outbox_pub, kafka, "События выплат", "Kafka Topic: billing.settlement.v1")
+
+@enduml

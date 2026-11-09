@@ -1,0 +1,40 @@
+@startuml
+skinparam state {
+  BackgroundColor<<Initial>> LightSkyBlue
+  BackgroundColor<<Active>> LightGreen
+  BackgroundColor<<Warning>> SandyBrown
+  BackgroundColor<<Final>> LightGray
+  BorderColor Black
+  FontSize 12
+  FontName "Helvetica"
+}
+
+[*] --> DRAFT : Создание черновика
+DRAFT --> MODERATION : Отправка на проверку (Submit)
+MODERATION --> PUBLISHED : Одобрено (Approve)
+MODERATION --> DRAFT : Отклонено (Reject)
+
+PUBLISHED --> UNDER_NEGOTIATION : Поступил оффер (Submit Offer)
+UNDER_NEGOTIATION --> PUBLISHED : Все офферы отклонены
+UNDER_NEGOTIATION --> BOOKED : Оффер акцептован (Accept Offer)
+
+PUBLISHED --> EXPIRED : Истекло окно погрузки (Timeout)
+PUBLISHED --> CANCELLED : Отмена грузовладельцем
+UNDER_NEGOTIATION --> CANCELLED : Отмена грузовладельцем
+
+BOOKED --> IN_TRANSIT : Рейс стартовал
+IN_TRANSIT --> DELIVERED : Доставка подтверждена
+DELIVERED --> ARCHIVED : Взаиморасчет завершен
+
+EXPIRED --> [*]
+CANCELLED --> [*]
+ARCHIVED --> [*]
+
+state DRAFT <<Initial>>
+state PUBLISHED <<Active>>
+state UNDER_NEGOTIATION <<Warning>>
+state BOOKED <<Active>>
+state ARCHIVED <<Final>>
+state CANCELLED <<Final>>
+state EXPIRED <<Final>>
+@enduml
