@@ -64,6 +64,57 @@ Apache Kafka выбрана из-за её архитектуры распред
 - **Отрицательные:** Необходимость поддерживать кластер Kafka (минимум 3 брокера для надежности), что требует компетенций в DevOps/SRE.
 - **Риски:** Неправильный дизайн партиций или ключей сообщений может привести к нарушению порядка обработки (out-of-order processing) или неравномерной нагрузке.
 
+---
+
+## Стратегия партиционирования (Partition Key Policy)
+
+Для гарантии строгой хронологии (Strict Total Ordering) событий одного объекта в пределах партиции устанавливаются обязательные правила формирования ключа `record.key`:
+
+| Топик Kafka | Partition Key | Гарантия |
+| :--- | :--- | :--- |
+| `marketplace.loads.v1` | `load_id` (UUID) | Все изменения статуса одного груза обрабатываются строго по очереди |
+| `marketplace.offers.v1` | `load_id` (UUID) | Защита от race conditions при параллельном акцепте ставок |
+| `transport.orders.v1` | `order_id` (UUID) | Строгая последовательность смены статусов рейса (ASSIGNED -> AT_PICKUP -> ...) |
+| `telemetry.gps.v1` | `vehicle_id` (UUID) | Точки трека одной машины всегда попадают в один поток консьюмера |
+| `billing.settlement.v1` | `organization_id` (UUID) | Баланс и кредитный лимит организации пересчитываются сериализованно |
+
+---
+
+## Регламент обработки сбоев: Retry Topics & Dead-Letter Topic (DLT)
+
+Для предотвращения блокировки (Head-of-Line Blocking) консьюмеров при возникновении транзиентных сетевых сбоев или ошибок валидации реализуется паттерн **Non-blocking Retry & DLT**:
+
+```
+[Main Topic] 
+     │ (Ошибка обработки)
+     ▼
+[Topic.retry-1]  (Пауза 1 секунда, Backoff)
+     │ (Повторная ошибка)
+     ▼
+[Topic.retry-2]  (Пауза 5 секунд, Backoff)
+     │ (Повторная ошибка)
+     ▼
+[Topic.retry-3]  (Пауза 30 секунд, Backoff)
+     │ (Неустранимая ошибка / Poison Pill)
+     ▼
+[Topic.dlt]      (Dead-Letter Topic -> Алерт в Sentry/OpsGenie)
+```
+
+### Заголовки сообщения в DLT (Kafka Record Headers):
+1. `x-original-topic`: имя исходного топика (например, `transport.orders.v1`).
+2. `x-original-partition`: номер исходной партиции.
+3. `x-original-offset`: смещение в исходной партиции.
+4. `x-exception-message`: краткое описание ошибки (например, `PostgreSQLException: connection timeout`).
+5. `x-exception-stacktrace`: полный стектрейс исключения.
+6. `x-retry-count`: суммарное количество попыток (значение `3`).
+7. `x-failed-at`: ISO8601 таймстемп перемещения в DLT.
+
+### Мониторинг и Redrive:
+- Метрика Prometheus: `kafka_consumer_dlt_messages_total{topic, consumer_group}`. При превышении порога $>0$ срабатывает P2 алерт дежурному инженеру.
+- Утилита повторного прогона (CLI Redrive): `cargo-cli kafka redrive --dlt transport.orders.v1.dlt --target transport.orders.v1 --batch 50`.
+
+---
+
 ## Migration / Evolution Path
 
-На Фазе 1 Kafka будет использоваться для асинхронного обмена доменными событиями между модулями монолита через Outbox паттерн. В будущем планируется использование Kafka Connect для интеграции с внешними хранилищами и Debezium (CDC) для прямой трансляции лога изменений БД.
+На Фазе 1 Kafka используется для асинхронного обмена доменными событиями между модулями через Transactional Outbox паттерн в PostgreSQL (`outbox_events`). В будущем планируется использование Kafka Connect и Debezium (CDC) для прямой потоковой трансляции лога изменений БД.

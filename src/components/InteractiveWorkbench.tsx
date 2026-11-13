@@ -20,8 +20,19 @@ import {
   Pause,
   ArrowUpRight,
   X,
-  Layers
+  Layers,
+  Calculator,
+  Smartphone,
+  Warehouse,
+  Award,
+  FileText
 } from 'lucide-react';
+import { RateCalculatorPrototype } from './prototypes/RateCalculatorPrototype';
+import { DriverAppSimulator } from './prototypes/DriverAppSimulator';
+import { AdminKycCalculator } from './prototypes/AdminKycCalculator';
+import { WarehouseDockDisplay } from './prototypes/WarehouseDockDisplay';
+import { EtrnValidatorPrototype } from './prototypes/EtrnValidatorPrototype';
+import { TachographSimulator } from './prototypes/TachographSimulator';
 
 interface FleetTrip {
   id: string;
@@ -124,7 +135,7 @@ const INITIAL_TRIPS: FleetTrip[] = [
 ];
 
 export const InteractiveWorkbench: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'dispatcher' | 'marketplace' | 'specs_comparison'>('dispatcher');
+  const [activeTab, setActiveTab] = useState<'dispatcher' | 'marketplace' | 'pricing' | 'driver' | 'kyc' | 'dock' | 'etrn' | 'tachograph'>('dispatcher');
   const [trips, setTrips] = useState<FleetTrip[]>(INITIAL_TRIPS);
   const [selectedTripId, setSelectedTripId] = useState<string>('trip-12');
   const [isAlertMode, setIsAlertMode] = useState<boolean>(false);
@@ -222,26 +233,94 @@ export const InteractiveWorkbench: React.FC = () => {
         </div>
 
         {/* Tab switcher */}
-        <div className="flex items-center gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-800 shrink-0">
+        <div className="flex flex-wrap items-center gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-800 shrink-0">
           <button
             onClick={() => setActiveTab('dispatcher')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
               activeTab === 'dispatcher'
                 ? 'bg-blue-600 text-white shadow-md'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            Диспетчерский пульт (Active Fleet)
+            <Truck className="w-3.5 h-3.5" />
+            <span>Диспетчерский пульт</span>
           </button>
           <button
             onClick={() => setActiveTab('marketplace')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
               activeTab === 'marketplace'
                 ? 'bg-blue-600 text-white shadow-md'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            Биржа & Торги (Negotiation)
+            <DollarSign className="w-3.5 h-3.5" />
+            <span>Биржа & Торги</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('pricing')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
+              activeTab === 'pricing'
+                ? 'bg-blue-600 text-white shadow-md'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Calculator className="w-3.5 h-3.5" />
+            <span>Тарификатор фрахта</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('driver')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
+              activeTab === 'driver'
+                ? 'bg-blue-600 text-white shadow-md'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Smartphone className="w-3.5 h-3.5" />
+            <span>Приложение водителя</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('kyc')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
+              activeTab === 'kyc'
+                ? 'bg-blue-600 text-white shadow-md'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Award className="w-3.5 h-3.5" />
+            <span>Скоринг СБ (KYC)</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('dock')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
+              activeTab === 'dock'
+                ? 'bg-blue-600 text-white shadow-md'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Warehouse className="w-3.5 h-3.5" />
+            <span>Табло склада</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('etrn')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
+              activeTab === 'etrn'
+                ? 'bg-blue-600 text-white shadow-md'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <FileText className="w-3.5 h-3.5" />
+            <span>ЭТрН & Телематика</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('tachograph')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
+              activeTab === 'tachograph'
+                ? 'bg-blue-600 text-white shadow-md'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Gauge className="w-3.5 h-3.5" />
+            <span>Тахограф (РТО №424)</span>
           </button>
         </div>
       </div>
@@ -784,6 +863,13 @@ export const InteractiveWorkbench: React.FC = () => {
           </div>
         </div>
       )}
+
+      {activeTab === 'pricing' && <RateCalculatorPrototype />}
+      {activeTab === 'driver' && <DriverAppSimulator />}
+      {activeTab === 'kyc' && <AdminKycCalculator />}
+      {activeTab === 'dock' && <WarehouseDockDisplay />}
+      {activeTab === 'etrn' && <EtrnValidatorPrototype />}
+      {activeTab === 'tachograph' && <TachographSimulator />}
     </div>
   );
 };

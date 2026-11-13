@@ -1,28 +1,13 @@
 {
-  "active_plan": "02-ui-screen-contracts-expansion.md",
-  "created_at": "2026-11-09T14:27:00Z",
-  "updated_at": "2026-11-09T14:45:00Z",
+  "active_plan": "05-advanced-logistics-mechanisms.md",
+  "created_at": "2026-11-10T12:00:00Z",
+  "updated_at": "2026-11-10T20:48:00Z",
   "status": "completed",
-  "epics": [
-    { "id": "EPIC-01", "name": "Модуль Грузовладельца (Shipper Experience)", "status": "completed" },
-    { "id": "EPIC-02", "name": "Модуль Перевозчика и Диспетчера (Carrier & Fleet Management)", "status": "completed" },
-    { "id": "EPIC-03", "name": "Мобильный интерфейс Водителя (Driver Mobile App)", "status": "completed" },
-    { "id": "EPIC-04", "name": "Панель Администратора, СБ и Безопасности (Trust & Safety Console)", "status": "completed" },
-    { "id": "EPIC-05", "name": "Складской терминал и управление пандусами (Warehouse Gate)", "status": "completed" },
-    { "id": "EPIC-06", "name": "Интеграция в интерактивный веб-портал CargoDocs", "status": "completed" }
-  ],
   "tasks": [
-    { "id": "TASK-020", "name": "Детализация карточки груза и торга", "status": "done" },
-    { "id": "TASK-021", "name": "Экран отслеживания активных доставок", "status": "done" },
-    { "id": "TASK-022", "name": "Экран ЭДО, закрывающих документов и претензий", "status": "done" },
-    { "id": "TASK-024", "name": "Назначение тягача, полуприцепа и водителя", "status": "done" },
-    { "id": "TASK-025", "name": "Управление автопарком и ТО", "status": "done" },
-    { "id": "TASK-027", "name": "Финансовый кабинет перевозчика и Факторинг", "status": "done" },
-    { "id": "TASK-028", "name": "Главный экран активного рейса водителя", "status": "done" },
-    { "id": "TASK-029", "name": "Сдача груза, PoD и фиксация инцидентов", "status": "done" },
-    { "id": "TASK-030", "name": "Консоль проверки организаций и СБ (KYC)", "status": "done" },
-    { "id": "TASK-031", "name": "Панель разрешения споров и арбитража", "status": "done" },
-    { "id": "TASK-032", "name": "Электронная очередь и управление пандусами", "status": "done" },
-    { "id": "TASK-033", "name": "Интеграция в веб-портал CargoDocs", "status": "done" }
+    { "id": "TASK-060", "name": "Спецификация РТО водителей и тахографов СКЗИ (Приказ № 424)", "status": "completed" },
+    { "id": "TASK-061", "name": "Аукционные алгоритмы маркетплейса (English, Dutch, Redlock)", "status": "completed" },
+    { "id": "TASK-062", "name": "Каскадный протокол доставки уведомлений (WS -> Push -> SMS -> IVR)", "status": "completed" },
+    { "id": "TASK-063", "name": "Профиль нагрузочного и хаос-тестирования k6 (50k pings/sec)", "status": "completed" },
+    { "id": "TASK-064", "name": "Интерактивный симулятор тахографа водителя в UI", "status": "completed" }
   ]
 }

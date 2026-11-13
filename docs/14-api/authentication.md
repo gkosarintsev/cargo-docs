@@ -46,9 +46,18 @@ Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
   "payload": {
     "sub": "usr_550e8400-e29b-41d4-a716-446655440000",
     "org_id": "org_123e4567-e89b-12d3-a456-426614174000",
-    "role": "Dispatcher",
-    "permissions": ["loads:read", "loads:write", "orders:manage"],
+    "org_tier": "GOLD",
+    "org_types": ["SHIPPER", "CARRIER"],
+    "roles": ["DISPATCHER"],
+    "permissions": [
+      "loads:read",
+      "loads:write",
+      "orders:manage",
+      "telemetry:read",
+      "claims:create"
+    ],
     "email": "dispatcher@example.com",
+    "phone": "+79032223344",
     "exp": 1710500400,
     "iat": 1710496800,
     "nbf": 1710496800,
@@ -63,17 +72,20 @@ Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
 
 | Claim         | Тип      | Описание                                                                    |
 | ------------- | -------- | --------------------------------------------------------------------------- |
-| `sub`         | string   | Уникальный идентификатор пользователя (префикс `usr_`)                      |
-| `org_id`      | string   | Идентификатор организации пользователя (префикс `org_`)                     |
-| `role`        | string   | Роль в организации: `Owner`, `Dispatcher`, `Accountant`, `Driver`, `Viewer` |
-| `permissions` | string[] | Список явно назначенных разрешений (скоупов)                                |
-| `email`       | string   | Email пользователя (только для логирования)                                 |
-| `exp`         | number   | Unix timestamp истечения токена (Access Token: TTL = 15 минут)              |
+| `sub`         | string   | Уникальный UUID идентификатор пользователя (`usr_<uuid>`)                   |
+| `org_id`      | string   | Идентификатор организации пользователя (`org_<uuid>`)                       |
+| `org_tier`    | string   | Уровень доверия СБ: `GOLD`, `SILVER`, `BRONZE`, `UNVERIFIED`                |
+| `org_types`   | string[] | Роли тенанта: `SHIPPER`, `CARRIER`, `FORWARDER`                             |
+| `roles`       | string[] | Роли сотрудника: `ADMIN`, `DISPATCHER`, `LOGIST`, `DRIVER`, `ACCOUNTANT`   |
+| `permissions` | string[] | Список гранулярных прав (`loads:write`, `finance:factoring`, etc.)         |
+| `email`       | string   | Email пользователя (только для аудита/логирования)                          |
+| `phone`       | string   | Верифицированный мобильный телефон пользователя                             |
+| `exp`         | number   | Unix timestamp истечения токена (Access Token: TTL = 15 минут / 900 сек)    |
 | `iat`         | number   | Unix timestamp выпуска токена                                               |
 | `nbf`         | number   | Unix timestamp начала действия токена                                       |
-| `jti`         | string   | Уникальный ID токена (для blacklist при logout)                             |
-| `iss`         | string   | Издатель токена (Auth Service URL)                                          |
-| `aud`         | string[] | Целевые получатели токена                                                   |
+| `jti`         | string   | Уникальный ID токена (для немедленного отзыва через Redis blacklist)        |
+| `iss`         | string   | Издатель токена (`https://auth.cargo.platform`)                             |
+| `aud`         | string[] | Целевые сервисы-получатели токена                                           |
 
 ### 2.3 Время жизни токенов
 
@@ -112,9 +124,34 @@ Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
 
 ### 2.5 Logout и Blacklisting
 
-- При выходе пользователя: `jti` текущего Access Token заносится в Redis-blacklist (TTL = оставшееся время жизни токена).
-- Все API Gateway перед обработкой запроса проверяют `jti` по Redis.
-- При компрометации: администратор может отозвать все токены пользователя через Admin API.
+Для мгновенного отзыва токенов без ожидания истечения их 15-минутного срока жизни используется распределённый Redis-кластер:
+
+#### 1. Одиночный отзыв токена (Logout):
+При вызове `POST /auth/logout` API Gateway вычисляет остаточное время жизни токена:
+$$\text{TTL}_{\text{remaining}} = \text{exp} - \text{now()}$$
+И сохраняет `jti` в Redis:
+```redis
+SETEX blacklist:jti:tok_a1b2c3d4-e5f6-7890-abcd-ef1234567890 <TTL_remaining> "revoked"
+```
+При каждом HTTP-запросе Envoy / API Gateway выполняет неблокирующую проверку:
+```redis
+EXISTS blacklist:jti:<jti>
+```
+*Оптимизация*: Для снижения нагрузки на Redis, Gateway кэширует положительные ответы `EXISTS` в локальном L1 LRU-кэше инстанса на 5 секунд.
+
+#### 2. Массовый отзыв всех сессий пользователя (Password Reset / Security Incident):
+При компрометации аккаунта, смене пароля или блокировке СБ:
+```redis
+SET user:usr_550e8400...:revoked_before 1710497500
+```
+Если `iat` предъявленного токена меньше значения `revoked_before`, Gateway возвращает `401 Unauthorized` с кодом `SESSION_REVOKED`.
+
+#### 3. Реестр активных сессий пользователя:
+Каждый выданный Refresh Token привязан к устройству и хранится в Redis Hash:
+```redis
+HSET user_sessions:usr_550e8400... "dev_mobile_ios_01" '{"ip":"185.12.34.5","ua":"CargoDriver/2.1 iOS","created_at":1710496800,"refresh_jti":"rt_abc123"}'
+```
+Пользователь может завершить конкретную сессию удалённо в личном кабинете.
 
 ---
 
